@@ -292,7 +292,7 @@ def collect_ata_metrics(device):
                 **device.base_labels,
             }
 
-            for col in 'value', 'worst', 'threshold':
+            for col in 'value', 'worst', 'threshold', 'raw_value':
                 yield Metric(
                     'attr_{col}'.format(name=entry["name"], col=col),
                     labels, entry[col])
