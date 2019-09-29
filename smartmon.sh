@@ -156,7 +156,7 @@ OUTPUTAWK
 
 format_output() {
   sort |
-    awk -F'{' "${output_format_awk}"
+    awk -F'{' "${output_format_awk} |sed -e 's/%//g"
 }
 
 smartctl_version="$(/usr/sbin/smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
