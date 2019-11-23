@@ -4,7 +4,7 @@
 #
 # Author: Ben Kochie <superq@gmail.com>
 
-upgrades="$(/usr/bin/apt-get --just-print upgrade \
+upgrades="$(/usr/bin/apt-get --just-print dist-upgrade \
   | /usr/bin/awk -F'[()]' \
       '/^Inst/ { sub("^[^ ]+ ", "", $2); gsub(" ","",$2);
                  sub("\\[", " ", $2); sub("\\]", "", $2); print $2 }' \
