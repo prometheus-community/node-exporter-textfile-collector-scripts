@@ -134,6 +134,10 @@ def handle_megaraid_controller(response):
     if response['Physical Drives'] > 0:
         data = get_storcli_json('/cALL/eALL/sALL show all J')
         drive_info = data['Controllers'][controller_index]['Response Data']
+        # Fetch info for devices not associated with enclosure (/cX/sZ)
+        data = get_storcli_json('/cALL/sALL show all J')
+        if 'Response Data' in data['Controllers'][controller_index]:
+            drive_info.update(data['Controllers'][controller_index]['Response Data'])
     for physical_drive in response['PD LIST']:
         create_metrics_of_physical_drive(physical_drive, drive_info, controller_index)
 
