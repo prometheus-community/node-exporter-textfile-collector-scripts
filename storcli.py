@@ -4,9 +4,10 @@ Script to parse StorCLI's JSON output and expose
 MegaRAID health as Prometheus metrics.
 
 Tested against StorCLI 'Ver 1.14.12 Nov 25, 2014'.
+                   and '007.1108.0000.0000 July 17, 2019'
 
 StorCLI reference manual:
-http://docs.avagotech.com/docs/12352476
+https://docs.broadcom.com/docs/12352476
 
 Advanced Software Options (ASO) not exposed as metrics currently.
 
@@ -28,7 +29,7 @@ import subprocess
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
     Prometheus metrics."""
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 storcli_path = ''
 metric_prefix = 'megaraid_'
@@ -70,12 +71,11 @@ def handle_common_controller(response):
     )
     add_metric('controller_info', controller_info_label, 1)
 
-    # Split up string to not trigger CodeSpell issues
-    if 'ROC temperature(Degree Celc' + 'ius)' in response['HwCfg'].keys():
-        response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop(
-            'ROC temperature(Degree Celc' + 'ius)'
-        )
-    add_metric('temperature', baselabel, int(response['HwCfg']['ROC temperature(Degree Celsius)']))
+    # Older boards don't have this sensor at all ("Temperature Sensor for ROC" : "Absent")
+    for key in ['ROC temperature(Degree Celcius)', 'ROC temperature(Degree Celsius)']:
+        if key in response['HwCfg']:
+            add_metric('temperature', baselabel, int(response['HwCfg'][key]))
+            break
 
 
 def handle_sas_controller(response):
@@ -125,7 +125,7 @@ def handle_megaraid_controller(response):
         add_metric('time_difference', baselabel, time_difference_seconds)
 
     # Make sure it doesn't crash if it's a JBOD setup
-    if 'Drive Groups' in response.keys():
+    if 'Drive Groups' in response:
         add_metric('drive_groups', baselabel, response['Drive Groups'])
         add_metric('virtual_drives', baselabel, response['Virtual Drives'])
 
