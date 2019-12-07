@@ -189,6 +189,8 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
                    int(settings['Commissioned Spare'] == 'Yes'))
         add_metric('pd_emergency_spare', pd_baselabel, int(settings['Emergency Spare'] == 'Yes'))
         pd_info_label += ',firmware="{0}"'.format(attributes['Firmware Revision'].strip())
+        if 'SN' in attributes:
+            pd_info_label += ',serial="{0}"'.format(attributes['SN'].strip())
     except KeyError:
         pass
     add_metric('pd_info', pd_info_label, 1)
