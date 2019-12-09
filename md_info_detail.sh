@@ -7,6 +7,7 @@
 set -eu
 
 for MD_DEVICE in /dev/md/*; do
+  if [ -b "$MD_DEVICE" ]; then
   # Subshell to avoid eval'd variables from leaking between iterations
   (
     # Resolve symlink to discover device, e.g. /dev/md127
@@ -84,4 +85,5 @@ for MD_DEVICE in /dev/md/*; do
     done  <<< "$MDADM_DETAIL_OUTPUT"
     echo "} 1"
   )
+  fi
 done

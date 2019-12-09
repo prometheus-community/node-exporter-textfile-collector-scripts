@@ -2,6 +2,7 @@
 set -eu
 
 for MD_DEVICE in /dev/md/*; do
+  if [ -b "$MD_DEVICE" ]; then
   # Subshell to avoid eval'd variables from leaking between iterations
   (
     # Resolve symlink to discover device, e.g. /dev/md127
@@ -53,4 +54,5 @@ for MD_DEVICE in /dev/md/*; do
     # NOTE: Metadata version is a label rather than a separate metric because the version can be a string
     echo "node_md_info{md_device=\"${MD_DEVICE_NUM}\", md_name=\"${MD_DEVICE}\", raid_level=\"${MD_LEVEL}\", md_metadata_version=\"${MD_METADATA_VERSION}\"} 1"
   )
+  fi
 done
