@@ -102,7 +102,7 @@ parse_smartctl_scsi_attributes() {
 }
 
 parse_smartctl_info() {
-  local -i smart_available=0 smart_enabled=0 smart_healthy=0
+  local -i smart_available=0 smart_enabled=0 smart_healthy=
   local disk="$1" disk_type="$2"
   local model_family='' device_model='' serial_number='' fw_version='' vendor='' product='' revision='' lun_id=''
   while read line; do
@@ -120,25 +120,27 @@ parse_smartctl_info() {
     esac
     if [[ "${info_type}" == 'SMART_support_is' ]]; then
       case "${info_value:0:7}" in
-      Enabled) smart_enabled=1 ;;
-      Availab) smart_available=1 ;;
-      Unavail) smart_available=0 ;;
+      Enabled) smart_available=1; smart_enabled=1 ;;
+      Availab) smart_available=1; smart_enabled=0 ;;
+      Unavail) smart_available=0; smart_enabled=0 ;;
       esac
     fi
     if [[ "${info_type}" == 'SMART_overall-health_self-assessment_test_result' ]]; then
       case "${info_value:0:6}" in
       PASSED) smart_healthy=1 ;;
+      *) smart_healthy=0 ;;
       esac
     elif [[ "${info_type}" == 'SMART_Health_Status' ]]; then
       case "${info_value:0:2}" in
       OK) smart_healthy=1 ;;
+      *) smart_healthy=0 ;;
       esac
     fi
   done
   echo "device_info{disk=\"${disk}\",type=\"${disk_type}\",vendor=\"${vendor}\",product=\"${product}\",revision=\"${revision}\",lun_id=\"${lun_id}\",model_family=\"${model_family}\",device_model=\"${device_model}\",serial_number=\"${serial_number}\",firmware_version=\"${fw_version}\"} 1"
   echo "device_smart_available{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_available}"
   echo "device_smart_enabled{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_enabled}"
-  echo "device_smart_healthy{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_healthy}"
+  [[ "${smart_healthy}" != "" ]] && echo "device_smart_healthy{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_healthy}"
 }
 
 output_format_awk="$(
