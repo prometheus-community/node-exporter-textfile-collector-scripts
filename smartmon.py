@@ -7,6 +7,7 @@ import decimal
 import re
 import shlex
 import subprocess
+import sys
 
 device_info_re = re.compile(r'^(?P<k>[^:]+?)(?:(?:\sis|):)\s*(?P<v>.*)$')
 
@@ -318,7 +319,7 @@ def collect_ata_error_count(device):
     yield Metric('device_errors', device.base_labels, error_count)
 
 
-def collect_disks_smart_metrics():
+def collect_disks_smart_metrics(wakeup_disks):
     now = int(datetime.datetime.utcnow().timestamp())
 
     for device in find_devices():
@@ -330,7 +331,7 @@ def collect_disks_smart_metrics():
 
         # Skip further metrics collection to prevent the disk from
         # spinning up.
-        if not is_active:
+        if not is_active and not wakeup_disks:
             continue
 
         yield from collect_device_info(device)
@@ -357,13 +358,17 @@ def collect_disks_smart_metrics():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true')
+    args = parser.parse_args(sys.argv[1:])
+
     version_metric = Metric('smartctl_version', {
         'version': smart_ctl_version()
     }, True)
     metric_print_meta(version_metric, 'smartmon_')
     metric_print(version_metric, 'smartmon_')
 
-    metrics = list(collect_disks_smart_metrics())
+    metrics = list(collect_disks_smart_metrics(args.wakeup_disks))
     metrics.sort(key=lambda i: i.name)
 
     previous_name = None
