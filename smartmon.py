@@ -121,12 +121,10 @@ def smart_ctl(*args, check=True):
     Returns:
         (str) Data piped to stdout by the smartctl subprocess.
     """
-    try:
-        return subprocess.run(
-            ['smartctl', *args], stdout=subprocess.PIPE, check=check
-        ).stdout.decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        return e.output.decode('utf-8')
+    return subprocess.run(
+        ['smartctl', *args], stdout=subprocess.PIPE, check=check
+    ).stdout.decode('utf-8')
+
 
 def smart_ctl_version():
     return smart_ctl('-V').split('\n')[0].split()[1]
@@ -241,12 +239,9 @@ def collect_device_health_self_assessment(device):
     Yields:
         (Metric) Device health self assessment.
     """
-    out = smart_ctl('--health', *device.smartctl_select())
+    out = smart_ctl('--health', *device.smartctl_select(), check=False)
 
-    if self_test_re.search(out):
-        self_assessment_passed = True
-    else:
-        self_assessment_passed = False
+    self_assessment_passed = bool(self_test_re.search(out))
 
     yield Metric(
         'device_smart_healthy', device.base_labels, self_assessment_passed)
