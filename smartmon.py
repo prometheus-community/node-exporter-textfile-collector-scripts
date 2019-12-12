@@ -276,7 +276,7 @@ def collect_ata_metrics(device):
         # Attributes such as 194 Temperature_Celsius reported by my SSD
         # are in the format of "36 (Min/Max 24/40)" which can't be expressed
         # properly as a prometheus metric.
-        m = re.match('^(\d+)', ' '.join(entry['raw_value']))
+        m = re.match(r'^(\d+)', ' '.join(entry['raw_value']))
         if not m:
             continue
         entry['raw_value'] = m.group(1)
