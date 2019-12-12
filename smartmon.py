@@ -261,6 +261,10 @@ def collect_ata_metrics(device):
     # SMART attributes.
     attribute_lines = attributes.strip().split('\n')[7:]
 
+    # Some attributes have multiple IDs but have the same name.  Don't
+    # yield attributes that already have been reported before.
+    seen = set()
+
     reader = csv.DictReader(
         (l.strip() for l in attribute_lines),
         fieldnames=SmartAttribute._fields[:-1],
@@ -281,7 +285,7 @@ def collect_ata_metrics(device):
             continue
         entry['raw_value'] = m.group(1)
 
-        if entry['name'] in smart_attributes_whitelist:
+        if entry['name'] in smart_attributes_whitelist and entry['name'] not in seen:
             labels = {
                 'name': entry['name'],
                 **device.base_labels,
@@ -291,6 +295,8 @@ def collect_ata_metrics(device):
                 yield Metric(
                     'attr_{col}'.format(name=entry["name"], col=col),
                     labels, entry[col])
+
+            seen.add(entry['name'])
 
 
 def collect_ata_error_count(device):
