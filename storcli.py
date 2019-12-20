@@ -25,10 +25,12 @@ import json
 import os
 import shlex
 import subprocess
+from datetime import datetime
+import time
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
     Prometheus metrics."""
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 storcli_path = ''
 metric_prefix = 'megaraid_'
@@ -57,7 +59,82 @@ def main(args):
     except KeyError:
         pass
 
+    if args.detailed_bbu:
+        # All the information is collected underneath the Controllers key
+        data = get_storcli_json('/cALL/cv show all J')
+
+        try:
+            # All the information is collected underneath the Controllers key
+            data = data['Controllers']
+
+            for controller in data:
+                response = controller['Response Data']
+                controller_index = controller['Command Status']['Controller']
+
+                handle_cachevault(controller_index, response)
+        except KeyError:
+            pass
+
+
     print_all_metrics(metric_list)
+
+#
+# Note that megaraid_cv_temperature is already provided by handle_megaraid_controller
+#
+def handle_cachevault(controller_index, response):
+
+    def search_property(response_data, section, property):
+        for pair_kv in response_data[section]:
+            if property == pair_kv['Property']:
+                return str(pair_kv['Value']).strip()
+        return ''
+
+    # We don't expect CVs bigger than GB nor smaller than MB
+    def size_to_megabytes(number, units):
+        if units in ['GB']:
+            return float(number) * 1024
+        return number
+
+    # The following is not really TZ aware, deal with caution :-)
+    def dt_to_seconds(date):
+        return time.mktime(date.timetuple())
+
+    baselabel = 'controller="{0}"'.format(controller_index)
+
+    cv_info_label = baselabel + ',type="{0}",manufactured_date="{1}",serial="{2}",manufacturer="{3}",capacity="{4}",module_version="{5}"'.format(
+        search_property(response, 'Cachevault_Info', 'Type'),
+        search_property(response, 'Design_Info', 'Date of Manufacture'),
+        search_property(response, 'Design_Info', 'Serial Number'),
+        search_property(response, 'Design_Info', 'Manufacture Name'),
+        search_property(response, 'Design_Info', 'Design Capacity'),
+        search_property(response, 'Design_Info', 'Module Version'))
+    add_metric('cv_info', baselabel + cv_info_label, 1)
+
+    cv_flash_size_str = search_property(response, 'Design_Info', 'CacheVault Flash Size')
+    if cv_flash_size_str not in ['N/A']:
+        amount, units = search_property(response, 'Design_Info', 'CacheVault Flash Size').split(' ', 1)
+        add_metric('cv_info_flash_size', baselabel + ',units="{0}"'.format(units), amount)
+
+    add_metric('cv_state_optimal', baselabel,
+               int(search_property(response, 'Cachevault_Info', 'State')=='Optimal'))
+    add_metric('cv_firmware_replacement_required', baselabel,
+               int(search_property(response, 'Firmware_Status', 'Replacement required')!='No'))
+    add_metric('cv_firmware_no_offload_space', baselabel,
+               int(search_property(response, 'Firmware_Status', 'No space to cache offload')!='No'))
+    add_metric('cv_firmware_microcode_update_required', baselabel,
+               int(search_property(response, 'Firmware_Status', 'Module microcode update required')!='No'))
+
+    amount, units = search_property(response, 'GasGaugeStatus', 'Pack Energy').split(' ', 1)
+    add_metric('cv_gas_pack_energy', baselabel + ',units="{0}"'.format(units), amount)
+    amount, units = search_property(response, 'GasGaugeStatus', 'Capacitance').split(' ', 1)
+    add_metric('cv_gas_capacitance', baselabel + ',units="{0}"'.format(units), amount)
+    add_metric('cv_gas_remaining_reserved_space', baselabel,
+               int(search_property(response, 'GasGaugeStatus', 'Remaining Reserve Space')))
+
+    _date, _blank, _time, garbage = search_property(response, 'Properties', 'Next Learn time').split(' ', 3)
+    next_relearn = datetime.strptime(_date + ' ' + _time, '%Y/%m/%d  %H:%M:%S')
+    add_metric('cv_next_relearn_timestamp', baselabel, dt_to_seconds(next_relearn))
+
 
 def handle_common_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
@@ -238,6 +315,8 @@ if __name__ == "__main__":
         description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     PARSER.add_argument(
         '--storcli_path', default='/opt/MegaRAID/storcli/storcli64', help='path to StorCLi binary')
+    PARSER.add_argument(
+        '--detailed_bbu', default=False, action='store_true', help='enables detailed BBU/CV metrics')
     PARSER.add_argument('--version', action='version', version='%(prog)s {0}'.format(VERSION))
     ARGS = PARSER.parse_args()
 
