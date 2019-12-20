@@ -18,8 +18,6 @@ use warnings;
 
 # These may need changing depending on the configuration of your system
 my $hpacucli = '/usr/sbin/hpssacli';
-my $sudo     = '/usr/bin/sudo';
-my $hpacucli_cmd = "$hpacucli";
 
 my ( $slot, $fh, $fh2 );
 
@@ -50,8 +48,8 @@ if ( !-e $hpacucli ) {
 }
 
 # Get controller status
-open( $fh, "$hpacucli_cmd controller all show status|" )
-  or exp_exit( "Failed to run $hpacucli_cmd" );
+open( $fh, "$hpacucli controller all show status|" )
+  or exp_exit( "Failed to run $hpacucli" );
 
 
 # Spin through output
@@ -69,7 +67,7 @@ foreach my $line (<$fh>) {
         foreach my $PARAM (qw(array physicaldrive logicaldrive)) {
 
             open( $fh2,
-                "$hpacucli_cmd controller slot=$slot $PARAM all show status|"
+                "$hpacucli controller slot=$slot $PARAM all show status|"
               )
               or exp_exit( "Failed to get info for $PARAM slot $slot" );
 
@@ -89,7 +87,7 @@ foreach my $line (<$fh>) {
 
         # Now get further details on each physicaldrive
         open( $fh2,
-            "$hpacucli_cmd controller slot=$slot physicaldrive all show detail|"
+            "$hpacucli controller slot=$slot physicaldrive all show detail|"
           )
           or exp_exit( "Failed to get info for physicaldrive slot $slot" );
 
@@ -142,6 +140,4 @@ foreach my $line (<$fh>) {
     }
 }
 close($fh)
-  or exp_exist("Failed to run $hpacucli_cmd controller all show status" );
-
-
+  or exp_exist("Failed to run $hpacucli controller all show status" );
