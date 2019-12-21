@@ -147,7 +147,13 @@ def handle_cachevault(args, controller_index, response):
             pass
 
         try:
-            amount, units = search_property(response, 'GasGaugeStatus', 'Capacitance').split(' ', 1)
+            # Another nasty hack as the output format is not consistent for certain values, e.g. 0 and 100
+            capacitance = search_property(response, 'GasGaugeStatus', 'Capacitance')
+            if '%' in capacitance:
+                amount, units = capacitance.split(' ', 1)
+            else:
+                amount = capacitance
+                units = '%'
             add_metric('cv_gas_capacitance', baselabel + ',units="{0}"'.format(units), amount)
         except ValueError:
             pass
