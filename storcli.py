@@ -267,8 +267,10 @@ def handle_megaraid_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
     # BBU Status value is not explained in the schema, see note in the header.
-    add_metric('bbu_status', baselabel,
-               int(response['Status']['BBU Status']))
+    try:
+        add_metric('bbu_status', baselabel, int(response['Status']['BBU Status']))
+    except:
+        pass
 
     add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
