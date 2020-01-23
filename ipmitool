@@ -31,12 +31,14 @@ BEGIN {
 	# Friendly description of the type of sensor for HELP.
 	help["temperature_celsius"] = "Temperature";
 	help["volts"] = "Voltage";
+	help["amps"] = "Current";
 	help["power_watts"] = "Power";
 	help["speed_rpm"] = "Fan";
 	help["status"] = "Chassis status";
 
 	temperature_celsius["metric_count"] = 0;
 	volts["metric_count"] = 0;
+	amps["metric_count"] = 0;
 	power_watts["metric_count"] = 0;
 	speed_rpm["metric_count"] = 0;
 	status["metric_count"] = 0;
@@ -65,6 +67,11 @@ $3 ~ /Volts/ {
 	volts["metric_count"]++;
 }
 
+$3 ~ /Amps/ {
+	amps[$1] = $2;
+	amps["metric_count"]++;
+}
+
 $3 ~ /Watts/ {
 	power_watts[$1] = $2;
 	power_watts["metric_count"]++;
@@ -83,6 +90,7 @@ $3 ~ /discrete/ {
 END {
 	export(temperature_celsius, "temperature_celsius");
 	export(volts, "volts");
+	export(amps, "amps");
 	export(power_watts, "power_watts");
 	export(speed_rpm, "speed_rpm");
 	export(status, "status");
