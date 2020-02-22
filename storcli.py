@@ -62,6 +62,13 @@ def main(args):
 def handle_common_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
+    controller_info_label = baselabel + ',model="{0}",serial="{1}",fwversion="{2}"'.format(
+        str(response['Basics']['Model']).strip(),
+        str(response['Basics']['Serial Number']).strip(),
+        str(response['Version']['Firmware Version']).strip(),
+    )
+    add_metric('controller_info', controller_info_label, 1)
+
     # Split up string to not trigger CodeSpell issues
     if 'ROC temperature(Degree Celc' + 'ius)' in response['HwCfg'].keys():
         response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop('ROC temperature(Degree Celc' + 'ius)')
@@ -141,14 +148,6 @@ def handle_megaraid_controller(response):
 def get_basic_controller_info(response):
     controller_index = response['Basics']['Controller']
     baselabel = 'controller="{0}"'.format(controller_index)
-
-    controller_info_label = baselabel + ',model="{0}",serial="{1}",fwversion="{2}"'.format(
-        str(response['Basics']['Model']).strip(),
-        str(response['Basics']['Serial Number']).strip(),
-        str(response['Version']['Firmware Version']).strip(),
-    )
-    add_metric('controller_info', controller_info_label, 1)
-
     return (controller_index, baselabel)
 
 
