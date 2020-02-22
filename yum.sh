@@ -8,6 +8,7 @@
 
 set -u -o pipefail
 
+# shellcheck disable=SC2016
 filter_awk_script='
 BEGIN { mute=1 }
 /Obsoleting Packages/ {
