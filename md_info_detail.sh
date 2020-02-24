@@ -27,7 +27,7 @@ for MD_DEVICE in /dev/md/*; do
     MD_LEVEL=${MD_LEVEL#raid}
 
     # Output disk metrics
-    for RAID_DISK in ${SYSFS_BASE}/rd[0-9]*; do
+    for RAID_DISK in "${SYSFS_BASE}"/rd[0-9]*; do
       DISK=$(readlink -f "${RAID_DISK}/block")
       DISK_DEVICE=$(basename "${DISK}")
       RAID_DISK_DEVICE=$(basename "${RAID_DISK}")
