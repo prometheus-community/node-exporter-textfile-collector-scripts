@@ -286,6 +286,12 @@ def collect_ata_metrics(device):
             continue
         entry['raw_value'] = m.group(1)
 
+        # Some device models report "---" in the threshold value where most
+        # devices would report "000". We do the substitution here because
+        # downstream code expects values to be convertable to integer.
+        if entry['threshold'] == '---':
+            entry['threshold'] = '0'
+
         if entry['name'] in smart_attributes_whitelist and entry['name'] not in seen:
             labels = {
                 'name': entry['name'],
