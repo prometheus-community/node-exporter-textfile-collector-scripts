@@ -134,7 +134,6 @@ def _show(info):
         l = _get_labels(cpu, ['Manufacturer','Family', 'Max Speed', 'Core Count'], ['Not Specified'])
         print ('node_dmi_processor{{{}}} 1'.format( ','.join('{}="{}"'.format(k,v) for k,v in l.items()) ))
 
-    cnt, total, unit = 0, 0, None
     for mem in _get('memory device'):
         if mem['Size'] == 'No Module Installed':
             continue
