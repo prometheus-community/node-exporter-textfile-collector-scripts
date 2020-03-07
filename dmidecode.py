@@ -130,9 +130,12 @@ def _show(info):
     l = _get_labels(system, ['Manufacturer','Product Name', 'Serial Number'], ['Not Specified'])
     print ('node_dmi_hardware_info{{{}}} 1'.format( ','.join('{}="{}"'.format(k,v) for k,v in l.items()) ))
 
+    idx = 0
     for cpu in _get('processor'):
         l = _get_labels(cpu, ['Manufacturer','Family', 'Max Speed', 'Core Count'], ['Not Specified'])
+        l['index'] = idx
         print ('node_dmi_processor{{{}}} 1'.format( ','.join('{}="{}"'.format(k,v) for k,v in l.items()) ))
+        idx += 1
 
     for mem in _get('memory device'):
         if mem['Size'] == 'No Module Installed':
