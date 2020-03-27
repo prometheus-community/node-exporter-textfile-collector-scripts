@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-# Dependencies: nvme-cli, jq (packages)
+# Dependencies: nvme-cli, grep, jq (packages)
 # Based on code from
 # - https://github.com/prometheus/node_exporter/blob/master/text_collector_examples/smartmon.sh
 # - https://github.com/prometheus/node_exporter/blob/master/text_collector_examples/mellanox_hca_temp
@@ -50,7 +50,7 @@ device_list="$(nvme list | awk '/^\/dev/{print $1}')"
 # Loop through the NVMe devices
 for device in ${device_list}; do
   json_check="$(nvme smart-log -o json "${device}")"
-  disk="$(echo "${device}" | cut -c6-10)"
+  disk="$(echo "${device}" | grep -Eo 'nvme[0-9]+')"
 
   # The temperature value in JSON is in Kelvin, we want Celsius
   value_temperature="$(echo "$json_check" | jq '.temperature - 273')"
