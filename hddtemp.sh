@@ -7,7 +7,7 @@
 #
 # Author: Andres Bott <contact@andresbott.com>
 
-temps=`nc localhost 7634 2>&1 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 " " $3 }'`
+temps=$(nc localhost 7634 2>&1 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 " " $3 }')
 
 ## exit if unable to connect to hddtempd
 if [[ $temps == *"Connection refused"* ]]; then
@@ -23,6 +23,5 @@ IFS=$'\n'
 
 for item in $temps
 do
-    echo "node_hddtemp{device=\"`echo $item | cut -d' ' -f1`\"} `echo $item | cut -d' ' -f2`"
+    echo "node_hddtemp{device=\"$(echo "$item" | cut -d' ' -f1)\"} $(echo "$item" | cut -d' ' -f2)"
 done
- 
