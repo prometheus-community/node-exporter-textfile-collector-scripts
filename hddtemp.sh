@@ -4,6 +4,11 @@
 # Description: Expose hard dist temperature metrics using hddtempd
 # this expects a running and configured hddtempd,
 # refer to t he hddtemp documentation for this case.
+# 
+# if disks are repored as in sleep ("SLP") the value will be -101
+# for all other unknown status, the reported value will be -100
+# this scenario asumes that any disk will never run in -100 degree celcius (-148°F)
+#
 #
 # Author: Andres Bott <contact@andresbott.com>
 
@@ -23,5 +28,17 @@ IFS=$'\n'
 
 for item in $temps
 do
-    echo "node_hddtemp{device=\"$(echo "$item" | cut -d' ' -f1)\"} $(echo "$item" | cut -d' ' -f2)"
+  dev=$(echo "$item" | cut -d' ' -f1)
+  val=$(echo "$item" | cut -d' ' -f2)
+
+  # check if disk is sleep
+  if [[ "$val" == "SLP" ]]
+  then
+      val="-101"
+  # if not sleep but reporte value is not a number
+  elif ! [[ "$val" =~ ^[0-9]+$ ]]
+  then
+        val="-100"
+  fi
+    echo "node_hddtemp{device=\"$dev\"} $val"
 done
