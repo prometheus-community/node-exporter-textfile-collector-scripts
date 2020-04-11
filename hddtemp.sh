@@ -15,7 +15,7 @@ if [[ $temps == *"Connection refused"* ]]; then
   exit 1
 fi
 
-echo '# HELP hddtemp Disk tem perature measured by hddtemp'
+echo '# HELP hddtemp Disk temperature measured by hddtemp'
 echo '# TYPE hddtemp gauge'
 
 #Set the field separator to new line
