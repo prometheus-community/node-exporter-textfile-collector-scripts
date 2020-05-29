@@ -126,7 +126,7 @@ def smart_ctl(*args, check=True):
             ['smartctl', *args], stdout=subprocess.PIPE, check=check
         ).stdout.decode('utf-8')
     except subprocess.CalledProcessError as e:
-        return e.output.decode('utf-8')
+        raise e
 
 def smart_ctl_version():
     return smart_ctl('-V').split('\n')[0].split()[1]
