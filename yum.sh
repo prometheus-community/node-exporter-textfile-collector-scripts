@@ -20,7 +20,7 @@ mute && /^[[:print:]]+\.[[:print:]]+/ {
 '
 
 check_upgrades() {
-  /usr/bin/yum -q check-update |
+  /usr/bin/yum -q check-update | /usr/bin/xargs -n3 |
     awk "${filter_awk_script}" |
     sort |
     uniq -c |
