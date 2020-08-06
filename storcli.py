@@ -100,11 +100,10 @@ def handle_sas_controller(response):
 def handle_megaraid_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
-    if response['Status']['BBU Status'] != 'NA':
-        # BBU Status Optimal value is 0 for normal, 8 for charging
-        add_metric('battery_backup_healthy', baselabel,
-                   int(response['Status']['BBU Status'] in [0, 8]))
-    add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
+    # BBU Status Optimal value is 0 for cachevault and 32 for BBU
+    add_metric('battery_backup_healthy', baselabel,
+               int(response['Status']['BBU Status'] in [0, 32]))
+    add_metric('degraded', baselabel, int(response['Status']['Controller Status'] not in ['Failed', 'Optimal']))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
     add_metric('ports', baselabel, response['HwCfg']['Backend Port Count'])
