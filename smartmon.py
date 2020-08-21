@@ -7,6 +7,7 @@ import decimal
 import re
 import shlex
 import subprocess
+import sys
 
 device_info_re = re.compile(r'^(?P<k>[^:]+?)(?:(?:\sis|):)\s*(?P<v>.*)$')
 
@@ -121,12 +122,10 @@ def smart_ctl(*args, check=True):
     Returns:
         (str) Data piped to stdout by the smartctl subprocess.
     """
-    try:
-        return subprocess.run(
-            ['smartctl', *args], stdout=subprocess.PIPE, check=check
-        ).stdout.decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        return e.output.decode('utf-8')
+    return subprocess.run(
+        ['smartctl', *args], stdout=subprocess.PIPE, check=check
+    ).stdout.decode('utf-8')
+
 
 def smart_ctl_version():
     return smart_ctl('-V').split('\n')[0].split()[1]
@@ -241,12 +240,9 @@ def collect_device_health_self_assessment(device):
     Yields:
         (Metric) Device health self assessment.
     """
-    out = smart_ctl('--health', *device.smartctl_select())
+    out = smart_ctl('--health', *device.smartctl_select(), check=False)
 
-    if self_test_re.search(out):
-        self_assessment_passed = True
-    else:
-        self_assessment_passed = False
+    self_assessment_passed = bool(self_test_re.search(out))
 
     yield Metric(
         'device_smart_healthy', device.base_labels, self_assessment_passed)
@@ -266,6 +262,10 @@ def collect_ata_metrics(device):
     # SMART attributes.
     attribute_lines = attributes.strip().split('\n')[7:]
 
+    # Some attributes have multiple IDs but have the same name.  Don't
+    # yield attributes that already have been reported before.
+    seen = set()
+
     reader = csv.DictReader(
         (l.strip() for l in attribute_lines),
         fieldnames=SmartAttribute._fields[:-1],
@@ -281,12 +281,12 @@ def collect_ata_metrics(device):
         # Attributes such as 194 Temperature_Celsius reported by my SSD
         # are in the format of "36 (Min/Max 24/40)" which can't be expressed
         # properly as a prometheus metric.
-        m = re.match('^(\d+)', ' '.join(entry['raw_value']))
+        m = re.match(r'^(\d+)', ' '.join(entry['raw_value']))
         if not m:
             continue
         entry['raw_value'] = m.group(1)
 
-        if entry['name'] in smart_attributes_whitelist:
+        if entry['name'] in smart_attributes_whitelist and entry['name'] not in seen:
             labels = {
                 'name': entry['name'],
                 **device.base_labels,
@@ -296,6 +296,8 @@ def collect_ata_metrics(device):
                 yield Metric(
                     'attr_{col}'.format(name=entry["name"], col=col),
                     labels, entry[col])
+
+            seen.add(entry['name'])
 
 
 def collect_ata_error_count(device):
@@ -317,7 +319,7 @@ def collect_ata_error_count(device):
     yield Metric('device_errors', device.base_labels, error_count)
 
 
-def collect_disks_smart_metrics():
+def collect_disks_smart_metrics(wakeup_disks):
     now = int(datetime.datetime.utcnow().timestamp())
 
     for device in find_devices():
@@ -329,7 +331,7 @@ def collect_disks_smart_metrics():
 
         # Skip further metrics collection to prevent the disk from
         # spinning up.
-        if not is_active:
+        if not is_active and not wakeup_disks:
             continue
 
         yield from collect_device_info(device)
@@ -356,13 +358,17 @@ def collect_disks_smart_metrics():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true')
+    args = parser.parse_args(sys.argv[1:])
+
     version_metric = Metric('smartctl_version', {
         'version': smart_ctl_version()
     }, True)
     metric_print_meta(version_metric, 'smartmon_')
     metric_print(version_metric, 'smartmon_')
 
-    metrics = list(collect_disks_smart_metrics())
+    metrics = list(collect_disks_smart_metrics(args.wakeup_disks))
     metrics.sort(key=lambda i: i.name)
 
     previous_name = None
