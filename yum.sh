@@ -37,3 +37,15 @@ if [[ -n "${upgrades}" ]] ; then
 else
   echo 'yum_upgrades_pending{origin=""} 0'
 fi
+
+# if yum-utils is not installed the skip rendering this metric 
+if [[ -f '/bin/needs-restarting' ]] ; then
+  echo '# HELP node_reboot_required Node reboot is required for software updates.'
+  echo '# TYPE node_reboot_required gauge'
+  /bin/needs-restarting -r  > /dev/null 2>&1
+  if [[ $? -eq 0 ]] ; then
+    echo 'node_reboot_required 0'
+  else
+    echo 'node_reboot_required 1'
+  fi
+fi
