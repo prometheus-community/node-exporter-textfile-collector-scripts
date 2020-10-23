@@ -33,12 +33,14 @@ BEGIN {
 	help["volts"] = "Voltage";
 	help["power_watts"] = "Power";
 	help["speed_rpm"] = "Fan";
+	help["percent"] = "Device";
 	help["status"] = "Chassis status";
 
 	temperature_celsius["metric_count"] = 0;
 	volts["metric_count"] = 0;
 	power_watts["metric_count"] = 0;
 	speed_rpm["metric_count"] = 0;
+	percent["metric_count"] = 0;
 	status["metric_count"] = 0;
 }
 
@@ -75,6 +77,11 @@ $3 ~ /RPM/ {
 	speed_rpm["metric_count"]++;
 }
 
+$3 ~ /percent/ {
+        percent[$1] = $2;
+        percent["metric_count"]++;
+}
+
 $3 ~ /discrete/ {
 	status[$1] = sprintf("%d", substr($2,3,2));
 	status["metric_count"]++;
@@ -85,5 +92,6 @@ END {
 	export(volts, "volts");
 	export(power_watts, "power_watts");
 	export(speed_rpm, "speed_rpm");
+	export(percent, "percent");
 	export(status, "status");
 }
