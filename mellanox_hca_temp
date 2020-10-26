@@ -46,7 +46,7 @@ for dev in /sys/class/infiniband/*; do
     # get temperature
     if temperature="$(mget_temp_ext -d "${device}")"; then
         # output
-        echo "node_infiniband_hca_temp_celsius{hca_device=\"${device}\"} ${temperature//[[:space:]]/}"
+        echo "node_infiniband_hca_temp_celsius{device=\"${device}\"} ${temperature//[[:space:]]/}"
     else
         echo "${0##*/}: Failed to get temperature from InfiniBand HCA '${device}'!" >&2
     fi
