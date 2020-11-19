@@ -50,7 +50,7 @@ device_list="$(nvme list | awk '/^\/dev/{print $1}')"
 # Loop through the NVMe devices
 for device in ${device_list}; do
   json_check="$(nvme smart-log -o json "${device}")"
-  disk="$(echo "${device}" | cut -c6-10)"
+  disk="${device##*/}"
 
   # The temperature value in JSON is in Kelvin, we want Celsius
   value_temperature="$(echo "$json_check" | jq '.temperature - 273')"
