@@ -45,7 +45,7 @@ nvme_version="$(nvme version | awk '$1 == "nvme" {print $3}')"
 echo "nvmecli{version=\"${nvme_version}\"} 1" | format_output
 
 # Get devices
-device_list="$(nvme list | awk '/^\/dev/{print $1}')"
+device_list="$(nvme list -o json | jq -r '.Devices | .[].DevicePath')"
 
 # Loop through the NVMe devices
 for device in ${device_list}; do
