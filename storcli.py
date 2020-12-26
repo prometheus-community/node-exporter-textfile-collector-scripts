@@ -15,6 +15,11 @@ output, i.e.  when you omit the trailing 'J' from the command.
 
 Formatting done with YAPF:
 $ yapf -i --style '{COLUMN_LIMIT: 99}' storcli.py
+
+NOTE about the undocumented "BBU Status":
+As of 201912, there's still an ongoing effort to reverse engineer the value, you can find the latest mappings at:
+https://github.com/prometheus-community/node-exporter-textfile-collector-scripts/issues/27
+(may change to a better location)
 """
 
 from __future__ import print_function
@@ -25,10 +30,12 @@ import json
 import os
 import shlex
 import subprocess
+from datetime import datetime
+import time
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
     Prometheus metrics."""
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 storcli_path = ''
 metric_prefix = 'megaraid_'
@@ -57,7 +64,177 @@ def main(args):
     except KeyError:
         pass
 
+    parsers = {
+        'cv': handle_cachevault,
+        'bbu': handle_bbu
+    }
+
+    for parser, parser_func in parsers.items():
+        data = get_storcli_json('/cALL/' + parser + ' show all J')
+
+        try:
+            data = data['Controllers']
+            for controller in data:
+                if controller['Command Status']['Status'] in ['Success']:
+                    #print('# Executing parser: ' + parser + ' = ' + str(parser_func) + ': ' + str(controller))
+                    response = controller['Response Data']
+                    controller_index = controller['Command Status']['Controller']
+                    parser_func(args, controller_index, response)
+        except KeyError:
+            pass
+
     print_all_metrics(metric_list)
+
+
+# We don't expect BBUs/CVs bigger than GB nor smaller than MB
+def get_amount_in_megabytes(number, units):
+    if units in ['GB']:
+        return float(number) * 1024
+    return number
+
+def search_property(response_data, section, property):
+    for pair_kv in response_data[section]:
+        if property == pair_kv['Property']:
+            return str(pair_kv['Value']).strip()
+    return ''
+
+# The following is not really TZ aware, deal with caution :-)
+def datestr_to_seconds(date):
+    return time.mktime(date.timetuple())
+
+def handle_cachevault(args, controller_index, response):
+
+    baselabel = 'controller="{0}"'.format(controller_index)
+
+    cv_info_label = baselabel + ',type="{0}",manufactured_date="{1}",serial="{2}",manufacturer="{3}",capacity="{4}",module_version="{5}"'.format(
+        search_property(response, 'Cachevault_Info', 'Type'),
+        search_property(response, 'Design_Info', 'Date of Manufacture'),
+        search_property(response, 'Design_Info', 'Serial Number'),
+        search_property(response, 'Design_Info', 'Manufacture Name'),
+        search_property(response, 'Design_Info', 'Design Capacity'),
+        search_property(response, 'Design_Info', 'Module Version'))
+    add_metric('cv_info', cv_info_label, 1)
+
+    cv_state = search_property(response, 'Cachevault_Info', 'State')
+    add_metric('cv_state_optimal', baselabel + ',state="{0}"'.format(cv_state), int(cv_state == 'Optimal'))
+
+    # For backwards compatibility
+    add_metric('battery_backup_healthy', baselabel + ',state="{0}"'.format(cv_state), int(cv_state == 'Optimal'))
+
+    amount, units = search_property(response, 'Cachevault_Info', 'Temperature').split(' ', 1)
+    add_metric('cv_temperature', baselabel + ',units="{0}"'.format(units), int(amount))
+
+    if not args.no_detailed_bbu:
+        cv_flash_size_str = search_property(response, 'Design_Info', 'CacheVault Flash Size')
+        if cv_flash_size_str not in ['N/A']:
+            try:
+                amount, units = cv_flash_size_str.split(' ', 1)
+                add_metric('cv_info_flash_size', baselabel + ',units="{0}"'.format(units), get_amount_in_megabytes(amount, units))
+            except ValueError:
+                pass
+
+        add_metric('cv_firmware_replacement_required', baselabel,
+                   int(search_property(response, 'Firmware_Status', 'Replacement required')!='No'))
+        add_metric('cv_firmware_no_offload_space', baselabel,
+                   int(search_property(response, 'Firmware_Status', 'No space to cache offload')!='No'))
+        add_metric('cv_firmware_microcode_update_required', baselabel,
+                   int(search_property(response, 'Firmware_Status', 'Module microcode update required')!='No'))
+
+        try:
+            amount, units = search_property(response, 'GasGaugeStatus', 'Pack Energy').split(' ', 1)
+            add_metric('cv_gas_pack_energy', baselabel + ',units="{0}"'.format(units), amount)
+        except ValueError:
+            pass
+
+        try:
+            # Another nasty hack as the output format is not consistent for certain values, e.g. 0 and 100
+            capacitance = search_property(response, 'GasGaugeStatus', 'Capacitance')
+            if '%' in capacitance:
+                amount, units = capacitance.split(' ', 1)
+            else:
+                amount = capacitance
+                units = '%'
+            add_metric('cv_gas_capacitance', baselabel + ',units="{0}"'.format(units), amount)
+        except ValueError:
+            pass
+        add_metric('cv_gas_remaining_reserved_space', baselabel,
+                   int(search_property(response, 'GasGaugeStatus', 'Remaining Reserve Space')))
+
+        _date, _blank, _time, garbage = search_property(response, 'Properties', 'Next Learn time').split(' ', 3)
+        next_learn = datetime.strptime(_date + ' ' + _time, '%Y/%m/%d  %H:%M:%S')
+        add_metric('cv_next_learn_timestamp', baselabel, datestr_to_seconds(next_learn))
+
+
+def handle_bbu(args, controller_index, response):
+    baselabel = 'controller="{0}"'.format(controller_index)
+
+    bbu_state = search_property(response, 'BBU_Info', 'Battery State')
+    add_metric('bbu_state_optimal', baselabel + ',state="{0}"'.format(bbu_state), int(bbu_state == 'Optimal'))
+
+    # For backwards compatibility
+    add_metric('battery_backup_healthy', baselabel + ',state="{0}"'.format(bbu_state), int(bbu_state == 'Optimal'))
+
+    amount, units = search_property(response, 'BBU_Info', 'Temperature').split(' ', 1)
+    add_metric('bbu_temperature', baselabel + ',units="{0}"'.format(units), int(amount))
+
+    bbu_info_label = baselabel + ',type="{0}",manufactured_date="{1}",serial="{2}",manufacturer="{3}",capacity="{4}",voltage="{5}",chemistry="{6}"'.format(
+        search_property(response, 'BBU_Info', 'Type'),
+        search_property(response, 'BBU_Design_Info', 'Date of Manufacture'),
+        search_property(response, 'BBU_Design_Info', 'Serial Number'),
+        search_property(response, 'BBU_Design_Info', 'Manufacture Name'),
+        search_property(response, 'BBU_Design_Info', 'Design Capacity'),
+        search_property(response, 'BBU_Design_Info', 'Design Voltage'),
+        search_property(response, 'BBU_Design_Info', 'Device Chemistry'))
+    add_metric('bbu_info', bbu_info_label, 1)
+
+    if not args.no_detailed_bbu:
+        try:
+            amount, units = search_property(response, 'BBU_Info', 'Voltage').split(' ', 1)
+            add_metric('bbu_voltage', baselabel + ',units="{0}"'.format(units), int(amount))
+        except ValueError:
+            pass
+
+        try:
+            amount, units = search_property(response, 'BBU_Info', 'Current').split(' ', 1)
+            add_metric('bbu_current', baselabel + ',units="{0}"'.format(units), int(amount))
+        except ValueError:
+            pass
+
+        try:
+            amount, units = search_property(response, 'BBU_Capacity_Info', 'Remaining Capacity').split(' ', 1)
+            add_metric('bbu_capacity_remaining', baselabel + ',units="{0}"'.format(units), int(amount))
+        except ValueError:
+            pass
+
+        add_metric('bbu_capacity_relative_charge_pct', baselabel,
+                   int(search_property(response, 'BBU_Capacity_Info', 'Relative State of Charge').replace('%','')))
+        add_metric('bbu_capacity_absolute_charge_pct', baselabel,
+                   int(search_property(response, 'BBU_Capacity_Info', 'Absolute State of charge').replace('%','')))
+
+        try:
+            amount, units = search_property(response, 'BBU_Capacity_Info', 'Full Charge Capacity').split(' ', 1)
+            add_metric('bbu_capacity_full_charge', baselabel + ',units="{0}"'.format(units), int(amount))
+        except ValueError:
+            pass
+
+        try:
+            amount, units = search_property(response, 'BBU_Capacity_Info', 'Average time to empty').split(' ', 1)
+            add_metric('bbu_capacity_avg_time_to_empty', baselabel + ',units="{0}"'.format(units), int(amount))
+        except ValueError:
+            pass
+
+        _date, _blank, _time, garbage = search_property(response, 'BBU_Properties', 'Next Learn time').split(' ', 3)
+        next_learn = datetime.strptime(_date + ' ' + _time, '%Y/%m/%d  %H:%M:%S')
+        add_metric('bbu_next_learn_timestamp', baselabel, datestr_to_seconds(next_learn))
+
+        # About the following, can't find documentation for this property in the JSON-Schema...
+        learn_modes = ['Unknown', 'Enabled', 'Transparent']
+        auto_learn_mode = search_property(response, 'BBU_Properties', 'Auto-Learn Mode')
+        try:
+            add_metric('bbu_auto_learn_mode_code', baselabel + ',mode="{0}"'.format(auto_learn_mode),
+                       learn_modes.index(auto_learn_mode))
+        except ValueError:
+            add_metric('bbu_auto_learn_mode_code', baselabel + ',mode="{0}"'.format(auto_learn_mode), 0)
 
 def handle_common_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
@@ -96,17 +273,18 @@ def handle_sas_controller(response):
 def handle_megaraid_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
-    # BBU Status Optimal value is 0 for cachevault and 32 for BBU
-    add_metric('battery_backup_healthy', baselabel,
-               int(response['Status']['BBU Status'] in [0, 32]))
+    # BBU Status value is not explained in the schema, see note in the header.
+    try:
+        add_metric('bbu_status', baselabel, int(response['Status']['BBU Status']))
+    except:
+        pass
+
     add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
     add_metric('ports', baselabel, response['HwCfg']['Backend Port Count'])
     add_metric('scheduled_patrol_read', baselabel,
                int('hrs' in response['Scheduled Tasks']['Patrol Read Reoccurrence']))
-    for cvidx, cvinfo in enumerate(response['Cachevault_Info']):
-        add_metric('cv_temperature', baselabel + ',cvidx="' + str(cvidx) + '"', int(cvinfo['Temp'].replace('C','')))
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
@@ -143,7 +321,6 @@ def handle_megaraid_controller(response):
         drive_info = data['Controllers'][controller_index]['Response Data']
     for physical_drive in response['PD LIST']:
         create_metrics_of_physical_drive(physical_drive, drive_info, controller_index)
-
 
 def get_basic_controller_info(response):
     controller_index = response['Basics']['Controller']
@@ -237,6 +414,8 @@ if __name__ == "__main__":
         description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     PARSER.add_argument(
         '--storcli_path', default='/opt/MegaRAID/storcli/storcli64', help='path to StorCLi binary')
+    PARSER.add_argument(
+        '--no_detailed_bbu', default=False, action='store_true', help='Disable detailed BBU/CV metrics')
     PARSER.add_argument('--version', action='version', version='%(prog)s {0}'.format(VERSION))
     ARGS = PARSER.parse_args()
 
