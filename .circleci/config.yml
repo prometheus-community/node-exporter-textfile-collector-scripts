@@ -8,9 +8,21 @@ executors:
   shellcheck:
     docker:
     - image: koalaman/shellcheck
+  python:
+    docker:
+      - image: cimg/python:3.9
+
+jobs:
+  flake8_lint:
+    executor: python
+    steps:
+      - checkout
+      - run: pip install flake8
+      - run: flake8
 
 workflows:
   version: 2
   scripts:
     jobs:
     - shellcheck/check
+    - flake8_lint
