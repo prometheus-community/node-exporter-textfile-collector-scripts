@@ -59,6 +59,7 @@ def main(args):
 
     print_all_metrics(metric_list)
 
+
 def handle_common_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
@@ -71,8 +72,11 @@ def handle_common_controller(response):
 
     # Split up string to not trigger CodeSpell issues
     if 'ROC temperature(Degree Celc' + 'ius)' in response['HwCfg'].keys():
-        response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop('ROC temperature(Degree Celc' + 'ius)')
+        response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop(
+            'ROC temperature(Degree Celc' + 'ius)'
+        )
     add_metric('temperature', baselabel, int(response['HwCfg']['ROC temperature(Degree Celsius)']))
+
 
 def handle_sas_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
@@ -106,7 +110,10 @@ def handle_megaraid_controller(response):
     add_metric('scheduled_patrol_read', baselabel,
                int('hrs' in response['Scheduled Tasks']['Patrol Read Reoccurrence']))
     for cvidx, cvinfo in enumerate(response['Cachevault_Info']):
-        add_metric('cv_temperature', baselabel + ',cvidx="' + str(cvidx) + '"', int(cvinfo['Temp'].replace('C','')))
+        add_metric('cv_temperature',
+                   baselabel + ',cvidx="' + str(cvidx) + '"',
+                   int(cvinfo['Temp'].replace('C', ''))
+                   )
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
@@ -128,8 +135,9 @@ def handle_megaraid_controller(response):
             if vd_position:
                 drive_group = vd_position.split('/')[0]
                 volume_group = vd_position.split('/')[1]
-            vd_baselabel = 'controller="{0}",DG="{1}",VG="{2}"'.format(controller_index, drive_group,
-                                                                    volume_group)
+            vd_baselabel = 'controller="{0}",DG="{1}",VG="{2}"'.format(controller_index,
+                                                                       drive_group,
+                                                                       volume_group)
             vd_info_label = vd_baselabel + ',name="{0}",cache="{1}",type="{2}",state="{3}"'.format(
                 str(virtual_drive.get('Name')).strip(),
                 str(virtual_drive.get('Cache')).strip(),
@@ -156,7 +164,7 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
     slot = physical_drive.get('EID:Slt').split(':')[1]
 
     pd_baselabel = 'controller="{0}",enclosure="{1}",slot="{2}"'.format(controller_index, enclosure,
-                                                                     slot)
+                                                                        slot)
     pd_info_label = pd_baselabel + \
         ',disk_id="{0}",interface="{1}",media="{2}",model="{3}",DG="{4}",state="{5}"'.format(
             str(physical_drive.get('DID')).strip(),
@@ -212,8 +220,10 @@ def print_all_metrics(metrics):
         print('# TYPE {0}{1} gauge'.format(metric_prefix, metric))
         for measurement in measurements:
             if measurement['value'] != 'Unknown':
-                print('{0}{1}{2} {3}'.format(metric_prefix, metric, '{' + measurement['labels'] + '}',
-                                         measurement['value']))
+                print('{0}{1}{2} {3}'.format(metric_prefix,
+                                             metric,
+                                             '{' + measurement['labels'] + '}',
+                                             measurement['value']))
 
 
 def get_storcli_json(storcli_args):
