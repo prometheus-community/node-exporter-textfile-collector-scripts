@@ -31,14 +31,14 @@ METRIC_PREFIX = 'tw_cli'
 
 
 def exit_error(msg):
-    print(METRIC_PREFIX + '_cli_error{message="' + str(msg) + '"}\t1')
+    print('{}_cli_error{{message="{}"}}\t1'.format(METRIC_PREFIX, msg))
     sys.exit(1)
 
 
 def exit_clean():
     global METRICS
     for mk, mv in METRICS.items():
-        print(METRIC_PREFIX + '_' + mk + '\t' + str(mv))
+        print('{}_{}\t{}'.format(METRIC_PREFIX, mk, mv))
     sys.exit(0)
 
 
@@ -46,7 +46,7 @@ def add_metric(metric, labels, value):
     global METRICS
     labelstrs = []
     for lk, lv in labels.items():
-        labelstrs += [lk + '="' + str(lv) + '"']
+        labelstrs += ['{}="{}"'.format(lk, lv)]
     labelstr = ','.join(labelstrs)
     METRICS[metric + '{' + labelstr + '}'] = str(value)
 
@@ -72,18 +72,17 @@ def run(cmd, stripOutput=True):
     except OSError as error:
         error = str(error)
         if error == "No such file or directory":
-            exit_error("Cannot find 3ware utility '%s'" % BIN)
+            exit_error("Cannot find 3ware utility '{}'".format(BIN))
         else:
-            exit_error("Error trying to run 3ware utility - %s" % error)
+            exit_error("Error trying to run 3ware utility - {}".format(error))
 
     if process.poll():
-
         exit_error("3ware utility process ended prematurely")
 
     try:
         stdout, stderr = process.communicate(cmd)
     except OSError as error:
-        exit_error("Unable to communicate with 3ware utility - %s" % error)
+        exit_error("Unable to communicate with 3ware utility - {}".format(error))
 
     if not stdout:
         exit_error("No output from 3ware utility")
@@ -97,7 +96,8 @@ def run(cmd, stripOutput=True):
 
     if process.returncode != 0:
         stderr = str(stdout).replace('\n', ' ')
-        exit_error("3ware utility returned an exit code of %s - %s" % (process.returncode, stderr))
+        exit_error("3ware utility returned an exit code of {} - {}".format(process.returncode,
+                                                                           stderr))
 
     if stripOutput:
         return output[3:-2]
@@ -118,7 +118,7 @@ def test_arrays(verbosity, warn_true=False):
     controllers = [line.split()[0] for line in lines if line.startswith('c')]
 
     for controller in controllers:
-        unit_lines = run('/%s show unitstatus' % controller)
+        unit_lines = run('/{} show unitstatus'.format(controller))
         if verbosity >= 3:
             for unit_line in unit_lines:
                 print(unit_line)
@@ -148,7 +148,6 @@ def test_arrays(verbosity, warn_true=False):
                 else:
                     add_metric('array_status', {'controller': controller[1:], 'unit': unit,
                                'state': state, 'pct': percent_complete}, 1)
-
             else:
                 add_metric('array_status', {'controller': controller[1:], 'unit': unit,
                            'state': state}, 0)
@@ -164,7 +163,7 @@ def test_drives(verbosity, warn_true=False):
             controllers.append(parts[0])
 
     for controller in controllers:
-        drive_lines = run('/%s show drivestatus' % controller)
+        drive_lines = run('/{} show drivestatus'.format(controller))
 
         if verbosity >= 3:
             for drive_line in drive_lines:
@@ -209,7 +208,7 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
     to parse. injectedLabels is just baseline labels to be included. Note that the map may list both
     labels to append to a catchall 'metric', or individual metrics, whose name overrides 'metric'
     and will contain injectedLabels."""
-    lines = run('%s show all' % cmdprefix, False)
+    lines = run('{} show all'.format(cmdprefix), False)
     labels = copy.copy(injectedLabels)
     for line in lines:
         if re.match('^' + cmdprefix + ' (.+?)= (.+?)$', line):
