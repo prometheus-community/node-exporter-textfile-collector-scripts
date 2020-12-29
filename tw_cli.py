@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Prometheus exporter for 3ware RAID controllers
+# Prometheus node_exporter textfile collector for 3ware RAID controllers
 #
 # Half of it based on "Nagios Plugin for 3ware RAID" from "Hari Sekhon",
 # Ref: http://github.com/harisekhon/nagios-plugins
@@ -8,15 +8,14 @@
 #
 # (c) 2019, Nuno Tavares <n.tavares@portavita.eu>
 #
-# You can find the latest version in:
+# You can find the latest version at:
 # https://github.com/ntavares/node-exporter-textfile-collector-scripts
 #
 
-"""Nagios plugin to test the state of all 3ware raid arrays and/or drives
-   on all 3ware controllers on the local machine. Requires the tw_cli program
-   written by 3ware, which should be called tw_cli_64 if running on a 64-bit
-   system. May be remotely executed via any of the standard remote nagios
-   execution mechanisms"""
+"""Nagios plugin to test the state of all 3ware RAID arrays and / or drives on all 3ware controllers
+on the local machine. Requires the tw_cli program written by 3ware, which should be called tw_cli_64
+if running on a 64-bit system. May be remotely executed via any of the standard remote nagios
+execution mechanisms"""
 
 import copy
 import os
@@ -59,13 +58,13 @@ BIN = None
 
 
 def _set_twcli_binary():
-    """ set the path to the twcli binary"""
+    """Set the path to the twcli binary"""
     global BIN
     BIN = '/usr/sbin/tw_cli'
 
 
 def run(cmd, stripOutput=True):
-    """runs a system command and returns stripped output"""
+    """Runs a system command and returns stripped output"""
     if not cmd:
         exit_error("internal python error - no cmd supplied for 3ware utility")
     try:
@@ -90,7 +89,7 @@ def run(cmd, stripOutput=True):
         exit_error("No output from 3ware utility")
 
     output = str(stdout).split("\n")
-    # strip command prompt, since we're running an interactive CLI shell
+    # Strip command prompt, since we're running an interactive CLI shell
     output[0] = re.sub(r'//.*?> ', '', output[0])
 
     if output[1] == "No controller found.":
@@ -107,17 +106,13 @@ def run(cmd, stripOutput=True):
 
 
 def test_all(verbosity, warn_true=False):
-    """Calls the raid and drive testing functions"""
-
+    """Calls the RAID and drive testing functions"""
     test_arrays(verbosity, warn_true)
-
     test_drives(verbosity, warn_true)
 
 
 def test_arrays(verbosity, warn_true=False):
-    """Tests all the raid arrays on all the 3ware controllers on
-    the local machine"""
-
+    """Tests all the RAID arrays on all the 3ware controllers on the local machine"""
     lines = run("show")
     # controllers = [line.split()[0] for line in lines]
     controllers = [line.split()[0] for line in lines if line and line[0] == "c"]
@@ -160,9 +155,7 @@ def test_arrays(verbosity, warn_true=False):
 
 
 def test_drives(verbosity, warn_true=False):
-    """Tests all the drives on the all the 3ware raid controllers
-    on the local machine"""
-
+    """Tests all the drives on the all the 3ware RAID controllers on the local machine"""
     lines = run("show")
     controllers = []
     for line in lines:
@@ -211,13 +204,11 @@ def _parse_yes_ok_on(val):
     return 0
 
 
-"""Generic function to parse key = value lists, based on a detailsMap which
-   selects the fields top parse. injectedLabels is just baseline labels to be included.
-   Note that the map may list both labels to append to a catchall 'metric', or individual
-   metrics, whose name overrides 'metric' and will contain injectedLabels."""
-
-
 def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
+    """Generic function to parse key = value lists, based on a detailsMap which selects the fields
+    to parse. injectedLabels is just baseline labels to be included. Note that the map may list both
+    labels to append to a catchall 'metric', or individual metrics, whose name overrides 'metric'
+    and will contain injectedLabels."""
     lines = run("%s show all" % cmdprefix, False)
     labels = copy.copy(injectedLabels)
     for line in lines:
@@ -231,7 +222,7 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
             if k in detailsMap:
                 if detailsMap[k]['parser']:
                     v = detailsMap[k]['parser'](v)
-                # if this field is meant for a separate metric, do it
+                # If this field is meant for a separate metric, do it
                 if 'metric' in detailsMap[k]:
                     add_metric(detailsMap[k]['metric'], injectedLabels, v)
                 else:
@@ -299,9 +290,7 @@ def collect_bbu(controller, verbosity):
 
 
 def main():
-    """Parses command line options and calls the function to
-    test the arrays/drives"""
-
+    """Parses command line options and calls the function to test the arrays/drives"""
     parser = OptionParser()
 
     parser.add_option("-a",
