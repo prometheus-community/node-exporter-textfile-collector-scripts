@@ -115,7 +115,7 @@ def test_arrays(verbosity, warn_true=False):
     """Tests all the RAID arrays on all the 3ware controllers on the local machine"""
     lines = run("show")
     # controllers = [line.split()[0] for line in lines]
-    controllers = [line.split()[0] for line in lines if line and line[0] == "c"]
+    controllers = [line.split()[0] for line in lines if line.startswith('c')]
 
     for controller in controllers:
         unit_lines = run("/%s show unitstatus" % controller)
@@ -241,7 +241,7 @@ def collect_controller(verbosity):
         'ACHIP Version':    {'label': 'achip', 'parser': None},
     }
     lines = run("show")
-    controllers = [line.split()[0] for line in lines if line and line[0] == "c"]
+    controllers = [line.split()[0] for line in lines if line.startswith('c')]
 
     for controller in controllers:
         collect_details('/' + controller, CTRL_DETAILS, 'controller_info',
