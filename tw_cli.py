@@ -21,7 +21,7 @@ import copy
 import os
 import re
 import sys
-from optparse import OptionParser
+from argparse import ArgumentParser
 from subprocess import Popen, PIPE, STDOUT
 
 __version__ = '0.1.0'
@@ -285,88 +285,44 @@ def collect_bbu(controller, verbosity):
 
 def main():
     """Parses command line options and calls the function to test the arrays/drives"""
-    parser = OptionParser()
+    parser = ArgumentParser()
 
-    parser.add_option('-a',
-                      '--arrays-only',
-                      action='store_true',
-                      dest='arrays_only',
-                      help="Only test the arrays. By default both arrays and drives are checked")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-a', '--arrays-only', action='store_true',
+                       help="Only test the arrays (default: %(default)s)")
+    group.add_argument('-d', '--drives-only', action='store_true',
+                       help="Only test the drives (default: %(default)s)")
 
-    parser.add_option('-d',
-                      '--drives-only',
-                      action='store_true',
-                      dest='drives_only',
-                      help="Only test the drives. By default both arrays and drives are checked")
+    parser.add_argument('-I', '--info', action='store_true', dest='incl_info',
+                        help="Include detailed component info (default: %(default)s)")
+    parser.add_argument('-w', '--warn-rebuilding', action='store_true',
+                        help="Warn when an array or disk is Rebuilding, Initializing or Verifying. "
+                        "You might want to do this to keep a closer eye on things. Also, these "
+                        "conditions can affect performance so you might want to know this is going "
+                        "on (default: %(default)s)")
+    parser.add_argument('-v', '--verbose', action='count', dest='verbosity',
+                        help="Verbose mode. By default only one result line is printed as per "
+                        "Nagios standards")
+    parser.add_argument('-V', '--version', action='version', version=__version__)
 
-    parser.add_option('-w',
-                      '--warn-rebuilding',
-                      action='store_true',
-                      dest='warn_true',
-                      help="Warn when an array or disk is Rebuilding, Initializing or Verifying. "
-                      "You might want to do this to keep a closer eye on things. Also, these "
-                      "conditions can affect performance so you might want to know this is going "
-                      "on. Default is to not warn during these states as they are not usually "
-                      "problems")
+    args = parser.parse_args()
 
-    parser.add_option('-v',
-                      '--verbose',
-                      action='count',
-                      dest='verbosity',
-                      help="Verbose mode. Good for testing plugin. By default only one result line "
-                      "is printed as per Nagios standards")
-
-    parser.add_option('-V',
-                      '--version',
-                      action='store_true',
-                      dest='version',
-                      help="Print version number and exit")
-
-    parser.add_option('-I',
-                      '--info',
-                      action='store_true',
-                      dest='incl_info',
-                      help="Include detailed component info")
-
-    (options, args) = parser.parse_args()
-
-    if args:
-        parser.print_help()
-        sys.exit(1)
-
-    arrays_only = options.arrays_only
-    drives_only = options.drives_only
-    warn_true = options.warn_true
-    verbosity = options.verbosity
-    version = options.version
-    incl_info = options.incl_info
-
-    if version:
-        print(__version__)
-        sys.exit(0)
-
-    if arrays_only and drives_only:
-        print("You cannot use the -a and -d switches together, they are mutually exclusive\n")
-        parser.print_help()
-        sys.exit(1)
-    elif drives_only and warn_true:
-        print("You cannot use the -d and -w switches together")
-        print("Array warning states are invalid when testing only drives\n")
-        parser.print_help()
-        sys.exit(1)
+    if args.drives_only and args.warn_rebuilding:
+        parser.error("You cannot use the -d and -w switches together. Array warning states are "
+                     "invalid when testing only drives.")
 
     if os.geteuid() != 0:
         exit_error("You must be root to run this plugin")
 
     _set_twcli_binary()
 
-    if drives_only:
-        test_drives(verbosity, warn_true)
+    if args.drives_only:
+        test_drives(args.verbosity, args.warn_rebuilding)
     else:
-        test_all(verbosity, warn_true)
+        test_all(args.verbosity, args.warn_rebuilding)
 
-    if incl_info:
-        collect_controller(verbosity)
+    if args.incl_info:
+        collect_controller(args.verbosity)
 
     exit_clean()
 
