@@ -29,16 +29,19 @@ try:
     from subprocess import Popen, PIPE, STDOUT
 except ImportError:
     # Perhaps you are using a version of python older than 2.4?
-    exit_error("CLI Parser error: Failed to import subprocess module.")
+    print("CLI Parser error: Failed to import subprocess module.")
+    sys.exit(1)
 
 __version__ = '0.1.0'
 
 METRICS = {}
 METRIC_PREFIX = 'tw_cli'
 
+
 def exit_error(msg):
     print(METRIC_PREFIX + "_cli_error{message=\"" + str(msg) + "\"}\t1")
     sys.exit(1)
+
 
 def exit_clean():
     global METRICS
@@ -46,11 +49,12 @@ def exit_clean():
         print(METRIC_PREFIX + '_' + mk + "\t" + str(mv))
     sys.exit(0)
 
+
 def add_metric(metric, labels, value):
     global METRICS
     labelstrs = []
-    for lk,lv in labels.items():
-        labelstrs += [ lk + '="' + str(lv) + '"' ]
+    for lk, lv in labels.items():
+        labelstrs += [lk + '="' + str(lv) + '"']
     labelstr = ','.join(labelstrs)
     METRICS[metric + '{' + labelstr + '}'] = str(value)
 
@@ -60,10 +64,12 @@ if os.geteuid() != 0:
 
 BIN = None
 
+
 def _set_twcli_binary():
     """ set the path to the twcli binary"""
     global BIN
     BIN = '/usr/sbin/tw_cli'
+
 
 def run(cmd, stripOutput=True):
     """runs a system command and returns stripped output"""
@@ -87,7 +93,6 @@ def run(cmd, stripOutput=True):
     except OSError as error:
         exit_error("unable to communicate with 3ware utility - %s" % error)
 
-
     if not stdout:
         exit_error("No output from 3ware utility")
 
@@ -99,7 +104,7 @@ def run(cmd, stripOutput=True):
         exit_error("No 3ware controllers were found on this machine")
 
     if process.returncode != 0:
-        stderr = str(stdout).replace("\n"," ")
+        stderr = str(stdout).replace("\n", " ")
         exit_error("3ware utility returned an exit code of %s - %s" % (process.returncode, stderr))
 
     if stripOutput:
@@ -121,8 +126,8 @@ def test_arrays(verbosity, warn_true=False):
     the local machine"""
 
     lines = run("show")
-    #controllers = [ line.split()[0] for line in lines ]
-    controllers = [ line.split()[0] for line in lines if line and line[0] == "c" ]
+    # controllers = [line.split()[0] for line in lines]
+    controllers = [line.split()[0] for line in lines if line and line[0] == "c"]
 
     for controller in controllers:
         unit_lines = run("/%s show unitstatus" % controller)
@@ -136,31 +141,29 @@ def test_arrays(verbosity, warn_true=False):
             state = unit_line[2]
             unit = int(unit_line[0][1:])
             raid = unit_line[1]
-            add_metric('array_info', {"controller": controller[1:], "unit": unit, "state": state, "raid": raid}, 1)
+            add_metric('array_info', {"controller": controller[1:], "unit": unit, "state": state,
+                       "raid": raid}, 1)
 
             if state == "OK":
-                add_metric('array_status', {"controller": controller[1:], "unit": unit, "state": state}, 1)
+                add_metric('array_status', {"controller": controller[1:], "unit": unit,
+                           "state": state}, 1)
                 continue
-            elif state == "REBUILDING"    or \
-                 state == "VERIFY-PAUSED" or \
-                 state == "VERIFYING"     or \
-                 state == "INITIALIZING":
-
-
-                if state == "VERIFY-PAUSED" or \
-                   state == "VERIFYING"     or \
-                   state == "INITIALIZING":
+            elif state in ("REBUILDING", "VERIFY-PAUSED", "VERIFYING", "INITIALIZING"):
+                if state in ("VERIFY-PAUSED", "VERIFYING", "INITIALIZING"):
                     percent_complete = unit_line[4]
                 else:
                     percent_complete = unit_line[3]
 
                 if warn_true:
-                    add_metric('array_status', {"controller": controller[1:], "unit": unit, "state": state, "pct": percent_complete}, 0)
+                    add_metric('array_status', {"controller": controller[1:], "unit": unit,
+                               "state": state, "pct": percent_complete}, 0)
                 else:
-                    add_metric('array_status', {"controller": controller[1:], "unit": unit, "state": state, "pct": percent_complete}, 1)
+                    add_metric('array_status', {"controller": controller[1:], "unit": unit,
+                               "state": state, "pct": percent_complete}, 1)
 
             else:
-                add_metric('array_status', {"controller": controller[1:], "unit": unit, "state": state}, 0)
+                add_metric('array_status', {"controller": controller[1:], "unit": unit,
+                           "state": state}, 0)
 
 
 def test_drives(verbosity, warn_true=False):
@@ -192,18 +195,22 @@ def test_drives(verbosity, warn_true=False):
             if array[0] == "u":
                 array = array[1:]
             if state == "OK" or state == "NOT-PRESENT":
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive, "array": array, "state": state}, 1)
+                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
+                           "array": array, "state": state}, 1)
                 continue
             if not warn_true and state in ('VERIFYING', 'REBUILDING', 'INITIALIZING'):
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive, "array": array, "state": state}, 1)
+                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
+                           "array": array, "state": state}, 1)
                 continue
             else:
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive, "array": array, "state": state}, 0)
+                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
+                           "array": array, "state": state}, 0)
 
 
 def _parse_temperature(val):
-    result = re.split('(\d+)(.*)$', val)
+    result = re.split(r'(\d+)(.*)$', val)
     return result[1]
+
 
 def _parse_yes_ok_on(val):
     if val in ['OK', 'Yes', 'On']:
@@ -216,6 +223,7 @@ def _parse_yes_ok_on(val):
    Note that the map may list both labels to append to a catchall 'metric', or individual
    metrics, whose name overrides 'metric' and will contain injectedLabels."""
 
+
 def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
     lines = run("%s show all" % cmdprefix, False)
     labels = copy.copy(injectedLabels)
@@ -223,8 +231,8 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
         if re.match('^' + cmdprefix + ' (.+?)= (.+?)$', line):
             if verbosity >= 3:
                 print(line)
-            result = re.split('\S+ (.+?)= (.+?)$', line)
-            #print "RESULT: " + str(result)
+            result = re.split(r'\S+ (.+?)= (.+?)$', line)
+            # print("RESULT:", str(result))
             k = result[1].strip()
             v = result[2].strip()
             if k in detailsMap:
@@ -237,57 +245,65 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
                     labels[detailsMap[k]['label']] = v
     add_metric(metric, labels, 1)
 
+
 def collect_controller(verbosity):
     CTRL_DETAILS = {
-        'Model':              { 'label': 'model',       'parser': None },
-        'Firmware Version':   { 'label': 'firmware',    'parser': None },
-        'Bios Version':       { 'label': 'bios',        'parser': None },
-        'Serial Number':      { 'label': 'serial',      'parser': None },
-        'PCB Version':        { 'label': 'pcb',         'parser': None },
-        'PCHIP Version':      { 'label': 'pchip',       'parser': None },
-        'ACHIP Version':      { 'label': 'achip',       'parser': None },
+        'Model':            {'label': 'model', 'parser': None},
+        'Firmware Version': {'label': 'firmware', 'parser': None},
+        'Bios Version':     {'label': 'bios', 'parser': None},
+        'Serial Number':    {'label': 'serial', 'parser': None},
+        'PCB Version':      {'label': 'pcb', 'parser': None},
+        'PCHIP Version':    {'label': 'pchip', 'parser': None},
+        'ACHIP Version':    {'label': 'achip', 'parser': None},
     }
     lines = run("show")
-    controllers = [ line.split()[0] for line in lines if line and line[0] == "c" ]
+    controllers = [line.split()[0] for line in lines if line and line[0] == "c"]
 
     for controller in controllers:
-        collect_details('/' + controller, CTRL_DETAILS, 'controller_info', { "controller": controller[1:] }, verbosity)
+        collect_details('/' + controller, CTRL_DETAILS, 'controller_info',
+                        {"controller": controller[1:]}, verbosity)
         collect_bbu(controller, verbosity)
         collect_drives(controller, verbosity)
 
 
 def collect_drives(controller, verbosity):
     DRIVE_DETAILS = {
-#        'Status':               { 'metric': 'drive_status',              'parser': _parse_yes_ok_on },
-        'Reallocated Sectors':  { 'metric': 'drive_reallocated_sectors', 'parser': None },
-        'Temperature':          { 'metric': 'drive_temperature',         'parser': _parse_temperature },
-        'Model':                { 'label': 'model',     'parser': None },
-        'Firmware Version':     { 'label': 'firmware',  'parser': None },
-        'Serial':               { 'label': 'serial',    'parser': None },
-        'Belongs to Unit':      { 'label': 'unit',      'parser': None },
-        'Link Speed':           { 'label': 'linkspeed', 'parser': None },
+        # 'Status':              {'metric': 'drive_status', 'parser': _parse_yes_ok_on},
+        'Reallocated Sectors': {'metric': 'drive_reallocated_sectors', 'parser': None},
+        'Temperature':         {'metric': 'drive_temperature', 'parser': _parse_temperature},
+        'Model':               {'label': 'model', 'parser': None},
+        'Firmware Version':    {'label': 'firmware', 'parser': None},
+        'Serial':              {'label': 'serial', 'parser': None},
+        'Belongs to Unit':     {'label': 'unit', 'parser': None},
+        'Link Speed':          {'label': 'linkspeed', 'parser': None},
     }
     drive_lines = run('/' + controller + ' show drivestatus')
     for drive_line in drive_lines:
         drive_line = drive_line.split()
         drive = drive_line[0]
-        collect_details('/' + controller + '/' + drive, DRIVE_DETAILS, 'drive_info', { "controller": controller[1:], 'drive': drive }, verbosity)
+        collect_details('/' + controller + '/' + drive, DRIVE_DETAILS, 'drive_info',
+                        {"controller": controller[1:], 'drive': drive}, verbosity)
+
 
 def collect_bbu(controller, verbosity):
     BBU_DETAILS = {
-        'Firmware Version':          { 'label': 'firmware',    'parser': None },
-        'Serial Number':             { 'label': 'serial',      'parser': None },
-        'Bootloader Version':        { 'label': 'bootloader',  'parser': None },
-        'PCB Revision':              { 'label': 'pcb',         'parser': None },
-        'Battery Installation Date': { 'label': 'since',       'parser': None },
-        'Online State':               { 'metric': 'bbu_online',  'parser': _parse_yes_ok_on },
-        'BBU Ready':                  { 'metric': 'bbu_ready',   'parser': _parse_yes_ok_on },
-        'BBU Status':                 { 'metric': 'bbu_status',  'parser': _parse_yes_ok_on },
-        'Battery Voltage status':     { 'metric': 'bbu_voltage_status',       'parser': _parse_yes_ok_on },
-        'Battery Temperature Status': { 'metric': 'bbu_temperature_status',   'parser': _parse_yes_ok_on },
-        'Battery Temperature Value':  { 'metric': 'bbu_temperature',          'parser': _parse_temperature },
+        'Firmware Version':           {'label': 'firmware', 'parser': None},
+        'Serial Number':              {'label': 'serial', 'parser': None},
+        'Bootloader Version':         {'label': 'bootloader', 'parser': None},
+        'PCB Revision':               {'label': 'pcb', 'parser': None},
+        'Battery Installation Date':  {'label': 'since', 'parser': None},
+        'Online State':               {'metric': 'bbu_online', 'parser': _parse_yes_ok_on},
+        'BBU Ready':                  {'metric': 'bbu_ready', 'parser': _parse_yes_ok_on},
+        'BBU Status':                 {'metric': 'bbu_status', 'parser': _parse_yes_ok_on},
+        'Battery Voltage status':     {'metric': 'bbu_voltage_status', 'parser': _parse_yes_ok_on},
+        'Battery Temperature Status': {'metric': 'bbu_temperature_status',
+                                       'parser': _parse_yes_ok_on},
+        'Battery Temperature Value':  {'metric': 'bbu_temperature',
+                                       'parser': _parse_temperature},
     }
-    collect_details('/' + controller + '/bbu', BBU_DETAILS, 'bbu_info', { "controller": controller[1:] }, verbosity)
+    collect_details('/' + controller + '/bbu', BBU_DETAILS, 'bbu_info',
+                    {"controller": controller[1:]}, verbosity)
+
 
 def main():
     """Parses command line options and calls the function to
@@ -295,52 +311,46 @@ def main():
 
     parser = OptionParser()
 
+    parser.add_option("-a",
+                      "--arrays-only",
+                      action="store_true",
+                      dest="arrays_only",
+                      help="Only test the arrays. By default both arrays and drives are checked")
 
-    parser.add_option( "-a",
-                       "--arrays-only",
-                       action="store_true",
-                       dest="arrays_only",
-                       help="Only test the arrays. By default both arrays " \
-                          + "and drives are checked")
+    parser.add_option("-d",
+                      "--drives-only",
+                      action="store_true",
+                      dest="drives_only",
+                      help="Only test the drives. By default both arrays and drives are checked")
 
-    parser.add_option( "-d",
-                       "--drives-only",
-                       action="store_true",
-                       dest="drives_only",
-                       help="Only test the drives. By default both arrays " \
-                          + "and drives are checked")
+    parser.add_option("-w",
+                      "--warn-rebuilding",
+                      action="store_true",
+                      dest="warn_true",
+                      help="Warn when an array or disk is Rebuilding, Initializing or Verifying. "
+                      "You might want to do this to keep a closer eye on things. Also, these "
+                      "conditions can affect performance so you might want to know this is going "
+                      "on. Default is to not warn during these states as they are not usually "
+                      "problems")
 
+    parser.add_option("-v",
+                      "--verbose",
+                      action="count",
+                      dest="verbosity",
+                      help="Verbose mode. Good for testing plugin. By default only one result line "
+                      "is printed as per Nagios standards")
 
-    parser.add_option( "-w",
-                       "--warn-rebuilding",
-                       action="store_true",
-                       dest="warn_true",
-                       help="Warn when an array or disk is Rebuilding, " \
-                          + "Initializing or Verifying. You might want to do " \
-                          + "this to keep a closer eye on things. Also, these " \
-                          + "conditions can affect performance so you might " \
-                          + "want to know this is going on. Default is to not " \
-                          + "warn during these states as they are not usually " \
-                          + "problems")
+    parser.add_option("-V",
+                      "--version",
+                      action="store_true",
+                      dest="version",
+                      help="Print version number and exit")
 
-    parser.add_option( "-v",
-                       "--verbose",
-                       action="count",
-                       dest="verbosity",
-                       help="Verbose mode. Good for testing plugin. By default\
- only one result line is printed as per Nagios standards")
-
-    parser.add_option( "-V",
-                       "--version",
-                       action="store_true",
-                       dest="version",
-                       help="Print version number and exit")
-
-    parser.add_option( "-I",
-                       "--info",
-                       action="store_true",
-                       dest="incl_info",
-                       help="Include detailed component info")
+    parser.add_option("-I",
+                      "--info",
+                      action="store_true",
+                      dest="incl_info",
+                      help="Include detailed component info")
 
     (options, args) = parser.parse_args()
 
@@ -348,20 +358,19 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    arrays_only  = options.arrays_only
-    drives_only  = options.drives_only
-    warn_true    = options.warn_true
-    verbosity    = options.verbosity
-    version      = options.version
-    incl_info    = options.incl_info
+    arrays_only = options.arrays_only
+    drives_only = options.drives_only
+    warn_true = options.warn_true
+    verbosity = options.verbosity
+    version = options.version
+    incl_info = options.incl_info
 
     if version:
         print(__version__)
-        sys.exit(OK)
+        sys.exit(0)
 
     if arrays_only and drives_only:
-        print("You cannot use the -a and -d switches together, they are", end=' ')
-        print("mutually exclusive\n")
+        print("You cannot use the -a and -d switches together, they are mutually exclusive\n")
         parser.print_help()
         sys.exit(1)
     elif drives_only and warn_true:
