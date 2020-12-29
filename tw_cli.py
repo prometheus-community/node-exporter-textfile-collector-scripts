@@ -31,14 +31,14 @@ METRIC_PREFIX = 'tw_cli'
 
 
 def exit_error(msg):
-    print(METRIC_PREFIX + "_cli_error{message=\"" + str(msg) + "\"}\t1")
+    print(METRIC_PREFIX + '_cli_error{message="' + str(msg) + '"}\t1')
     sys.exit(1)
 
 
 def exit_clean():
     global METRICS
     for mk, mv in METRICS.items():
-        print(METRIC_PREFIX + '_' + mk + "\t" + str(mv))
+        print(METRIC_PREFIX + '_' + mk + '\t' + str(mv))
     sys.exit(0)
 
 
@@ -66,7 +66,7 @@ def _set_twcli_binary():
 def run(cmd, stripOutput=True):
     """Runs a system command and returns stripped output"""
     if not cmd:
-        exit_error("internal python error - no cmd supplied for 3ware utility")
+        exit_error("Internal python error - no cmd supplied for 3ware utility")
     try:
         process = Popen(BIN, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
     except OSError as error:
@@ -74,7 +74,7 @@ def run(cmd, stripOutput=True):
         if error == "No such file or directory":
             exit_error("Cannot find 3ware utility '%s'" % BIN)
         else:
-            exit_error("error trying to run 3ware utility - %s" % error)
+            exit_error("Error trying to run 3ware utility - %s" % error)
 
     if process.poll():
 
@@ -83,12 +83,12 @@ def run(cmd, stripOutput=True):
     try:
         stdout, stderr = process.communicate(cmd)
     except OSError as error:
-        exit_error("unable to communicate with 3ware utility - %s" % error)
+        exit_error("Unable to communicate with 3ware utility - %s" % error)
 
     if not stdout:
         exit_error("No output from 3ware utility")
 
-    output = str(stdout).split("\n")
+    output = str(stdout).split('\n')
     # Strip command prompt, since we're running an interactive CLI shell
     output[0] = re.sub(r'//.*?> ', '', output[0])
 
@@ -96,7 +96,7 @@ def run(cmd, stripOutput=True):
         exit_error("No 3ware controllers were found on this machine")
 
     if process.returncode != 0:
-        stderr = str(stdout).replace("\n", " ")
+        stderr = str(stdout).replace('\n', ' ')
         exit_error("3ware utility returned an exit code of %s - %s" % (process.returncode, stderr))
 
     if stripOutput:
@@ -113,12 +113,12 @@ def test_all(verbosity, warn_true=False):
 
 def test_arrays(verbosity, warn_true=False):
     """Tests all the RAID arrays on all the 3ware controllers on the local machine"""
-    lines = run("show")
+    lines = run('show')
     # controllers = [line.split()[0] for line in lines]
     controllers = [line.split()[0] for line in lines if line.startswith('c')]
 
     for controller in controllers:
-        unit_lines = run("/%s show unitstatus" % controller)
+        unit_lines = run('/%s show unitstatus' % controller)
         if verbosity >= 3:
             for unit_line in unit_lines:
                 print(unit_line)
@@ -129,34 +129,34 @@ def test_arrays(verbosity, warn_true=False):
             state = unit_line[2]
             unit = int(unit_line[0][1:])
             raid = unit_line[1]
-            add_metric('array_info', {"controller": controller[1:], "unit": unit, "state": state,
-                       "raid": raid}, 1)
+            add_metric('array_info', {'controller': controller[1:], 'unit': unit, 'state': state,
+                       'raid': raid}, 1)
 
-            if state == "OK":
-                add_metric('array_status', {"controller": controller[1:], "unit": unit,
-                           "state": state}, 1)
+            if state == 'OK':
+                add_metric('array_status', {'controller': controller[1:], 'unit': unit,
+                           'state': state}, 1)
                 continue
-            elif state in ("REBUILDING", "VERIFY-PAUSED", "VERIFYING", "INITIALIZING"):
-                if state in ("VERIFY-PAUSED", "VERIFYING", "INITIALIZING"):
+            elif state in ('REBUILDING', 'VERIFY-PAUSED', 'VERIFYING', 'INITIALIZING'):
+                if state in ('VERIFY-PAUSED', 'VERIFYING', 'INITIALIZING'):
                     percent_complete = unit_line[4]
                 else:
                     percent_complete = unit_line[3]
 
                 if warn_true:
-                    add_metric('array_status', {"controller": controller[1:], "unit": unit,
-                               "state": state, "pct": percent_complete}, 0)
+                    add_metric('array_status', {'controller': controller[1:], 'unit': unit,
+                               'state': state, 'pct': percent_complete}, 0)
                 else:
-                    add_metric('array_status', {"controller": controller[1:], "unit": unit,
-                               "state": state, "pct": percent_complete}, 1)
+                    add_metric('array_status', {'controller': controller[1:], 'unit': unit,
+                               'state': state, 'pct': percent_complete}, 1)
 
             else:
-                add_metric('array_status', {"controller": controller[1:], "unit": unit,
-                           "state": state}, 0)
+                add_metric('array_status', {'controller': controller[1:], 'unit': unit,
+                           'state': state}, 0)
 
 
 def test_drives(verbosity, warn_true=False):
     """Tests all the drives on the all the 3ware RAID controllers on the local machine"""
-    lines = run("show")
+    lines = run('show')
     controllers = []
     for line in lines:
         parts = line.split()
@@ -164,7 +164,7 @@ def test_drives(verbosity, warn_true=False):
             controllers.append(parts[0])
 
     for controller in controllers:
-        drive_lines = run("/%s show drivestatus" % controller)
+        drive_lines = run('/%s show drivestatus' % controller)
 
         if verbosity >= 3:
             for drive_line in drive_lines:
@@ -175,22 +175,22 @@ def test_drives(verbosity, warn_true=False):
             drive_line = drive_line.split()
             state = drive_line[1]
             drive = drive_line[0]
-            if drive[0] == "d":
+            if drive[0] == 'd':
                 drive = drive[1:]
             array = drive_line[2]
-            if array[0] == "u":
+            if array[0] == 'u':
                 array = array[1:]
-            if state == "OK" or state == "NOT-PRESENT":
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
-                           "array": array, "state": state}, 1)
+            if state in ('OK', 'NOT-PRESENT'):
+                add_metric('drive_status', {'controller': controller[1:], 'drive': drive,
+                           'array': array, 'state': state}, 1)
                 continue
             if not warn_true and state in ('VERIFYING', 'REBUILDING', 'INITIALIZING'):
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
-                           "array": array, "state": state}, 1)
+                add_metric('drive_status', {'controller': controller[1:], 'drive': drive,
+                           'array': array, 'state': state}, 1)
                 continue
             else:
-                add_metric('drive_status', {"controller": controller[1:], "drive": drive,
-                           "array": array, "state": state}, 0)
+                add_metric('drive_status', {'controller': controller[1:], 'drive': drive,
+                           'array': array, 'state': state}, 0)
 
 
 def _parse_temperature(val):
@@ -199,7 +199,7 @@ def _parse_temperature(val):
 
 
 def _parse_yes_ok_on(val):
-    if val in ['OK', 'Yes', 'On']:
+    if val in ('OK', 'Yes', 'On'):
         return 1
     return 0
 
@@ -209,7 +209,7 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
     to parse. injectedLabels is just baseline labels to be included. Note that the map may list both
     labels to append to a catchall 'metric', or individual metrics, whose name overrides 'metric'
     and will contain injectedLabels."""
-    lines = run("%s show all" % cmdprefix, False)
+    lines = run('%s show all' % cmdprefix, False)
     labels = copy.copy(injectedLabels)
     for line in lines:
         if re.match('^' + cmdprefix + ' (.+?)= (.+?)$', line):
@@ -240,12 +240,12 @@ def collect_controller(verbosity):
         'PCHIP Version':    {'label': 'pchip', 'parser': None},
         'ACHIP Version':    {'label': 'achip', 'parser': None},
     }
-    lines = run("show")
+    lines = run('show')
     controllers = [line.split()[0] for line in lines if line.startswith('c')]
 
     for controller in controllers:
         collect_details('/' + controller, CTRL_DETAILS, 'controller_info',
-                        {"controller": controller[1:]}, verbosity)
+                        {'controller': controller[1:]}, verbosity)
         collect_bbu(controller, verbosity)
         collect_drives(controller, verbosity)
 
@@ -266,7 +266,7 @@ def collect_drives(controller, verbosity):
         drive_line = drive_line.split()
         drive = drive_line[0]
         collect_details('/' + controller + '/' + drive, DRIVE_DETAILS, 'drive_info',
-                        {"controller": controller[1:], 'drive': drive}, verbosity)
+                        {'controller': controller[1:], 'drive': drive}, verbosity)
 
 
 def collect_bbu(controller, verbosity):
@@ -286,52 +286,52 @@ def collect_bbu(controller, verbosity):
                                        'parser': _parse_temperature},
     }
     collect_details('/' + controller + '/bbu', BBU_DETAILS, 'bbu_info',
-                    {"controller": controller[1:]}, verbosity)
+                    {'controller': controller[1:]}, verbosity)
 
 
 def main():
     """Parses command line options and calls the function to test the arrays/drives"""
     parser = OptionParser()
 
-    parser.add_option("-a",
-                      "--arrays-only",
-                      action="store_true",
-                      dest="arrays_only",
+    parser.add_option('-a',
+                      '--arrays-only',
+                      action='store_true',
+                      dest='arrays_only',
                       help="Only test the arrays. By default both arrays and drives are checked")
 
-    parser.add_option("-d",
-                      "--drives-only",
-                      action="store_true",
-                      dest="drives_only",
+    parser.add_option('-d',
+                      '--drives-only',
+                      action='store_true',
+                      dest='drives_only',
                       help="Only test the drives. By default both arrays and drives are checked")
 
-    parser.add_option("-w",
-                      "--warn-rebuilding",
-                      action="store_true",
-                      dest="warn_true",
+    parser.add_option('-w',
+                      '--warn-rebuilding',
+                      action='store_true',
+                      dest='warn_true',
                       help="Warn when an array or disk is Rebuilding, Initializing or Verifying. "
                       "You might want to do this to keep a closer eye on things. Also, these "
                       "conditions can affect performance so you might want to know this is going "
                       "on. Default is to not warn during these states as they are not usually "
                       "problems")
 
-    parser.add_option("-v",
-                      "--verbose",
-                      action="count",
-                      dest="verbosity",
+    parser.add_option('-v',
+                      '--verbose',
+                      action='count',
+                      dest='verbosity',
                       help="Verbose mode. Good for testing plugin. By default only one result line "
                       "is printed as per Nagios standards")
 
-    parser.add_option("-V",
-                      "--version",
-                      action="store_true",
-                      dest="version",
+    parser.add_option('-V',
+                      '--version',
+                      action='store_true',
+                      dest='version',
                       help="Print version number and exit")
 
-    parser.add_option("-I",
-                      "--info",
-                      action="store_true",
-                      dest="incl_info",
+    parser.add_option('-I',
+                      '--info',
+                      action='store_true',
+                      dest='incl_info',
                       help="Include detailed component info")
 
     (options, args) = parser.parse_args()
@@ -374,7 +374,7 @@ def main():
     exit_clean()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
