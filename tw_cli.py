@@ -18,19 +18,12 @@
    system. May be remotely executed via any of the standard remote nagios
    execution mechanisms"""
 
+import copy
 import os
 import re
 import sys
 from optparse import OptionParser
-import copy
-
-
-try:
-    from subprocess import Popen, PIPE, STDOUT
-except ImportError:
-    # Perhaps you are using a version of python older than 2.4?
-    print("CLI Parser error: Failed to import subprocess module.")
-    sys.exit(1)
+from subprocess import Popen, PIPE, STDOUT
 
 __version__ = '0.1.0'
 
