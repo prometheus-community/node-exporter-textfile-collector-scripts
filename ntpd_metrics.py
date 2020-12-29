@@ -13,18 +13,18 @@ ntpq_rv_cmd = ['ntpq', '-c', 'rv 0 offset,sys_jitter,rootdisp,rootdelay']
 
 # Regex to match all of the fields in the output of ntpq -np
 metrics_fields = [
-    '^(?P<status>.)(?P<remote>[\w\.]+)',
-    '(?P<refid>[\w\.]+)',
-    '(?P<stratum>\d+)',
-    '(?P<type>\w)',
-    '(?P<when>\d+)',
-    '(?P<poll>\d+)',
-    '(?P<reach>\d+)',
-    '(?P<delay>\d+\.\d+)',
-    '(?P<offset>-?\d+\.\d+)',
-    '(?P<jitter>\d+\.\d+)',
+    r'^(?P<status>.)(?P<remote>[\w\.]+)',
+    r'(?P<refid>[\w\.]+)',
+    r'(?P<stratum>\d+)',
+    r'(?P<type>\w)',
+    r'(?P<when>\d+)',
+    r'(?P<poll>\d+)',
+    r'(?P<reach>\d+)',
+    r'(?P<delay>\d+\.\d+)',
+    r'(?P<offset>-?\d+\.\d+)',
+    r'(?P<jitter>\d+\.\d+)',
 ]
-metrics_re = '\s+'.join(metrics_fields)
+metrics_re = r'\s+'.join(metrics_fields)
 
 # Remote types
 # http://support.ntp.org/bin/view/Support/TroubleshootingNTP
@@ -54,7 +54,7 @@ status_types = {
 def get_output(command):
     try:
         output = subprocess.check_output(command, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return None
     return output.decode()
 
@@ -72,13 +72,13 @@ def print_prometheus(metric, values):
 
 # Parse raw ntpq lines.
 def parse_line(line):
-    if re.match('\s+remote\s+refid', line):
+    if re.match(r'\s+remote\s+refid', line):
         return None
-    if re.match('=+', line):
+    if re.match(r'=+', line):
         return None
-    if re.match('.+\.(LOCL|POOL)\.', line):
+    if re.match(r'.+\.(LOCL|POOL)\.', line):
         return None
-    if re.match('^$', line):
+    if re.match(r'^$', line):
         return None
     return re.match(metrics_re, line)
 
@@ -105,7 +105,7 @@ def main(argv):
         delay_metrics[common_labels] = float(metric_match.group('delay'))
         offset_metrics[common_labels] = float(metric_match.group('offset'))
         jitter_metrics[common_labels] = float(metric_match.group('jitter'))
- 
+
     print_prometheus('peer_status', peer_status_metrics)
     print_prometheus('delay_milliseconds', delay_metrics)
     print_prometheus('offset_milliseconds', offset_metrics)
@@ -119,4 +119,4 @@ def main(argv):
 
 # Go go go!
 if __name__ == "__main__":
-     main(sys.argv[1:])
+    main(sys.argv[1:])

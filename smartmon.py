@@ -109,7 +109,7 @@ def metric_print_meta(metric, prefix=''):
     key = metric_key(metric, prefix)
     print('# HELP {key} SMART metric {metric.name}'.format(
         key=key, metric=metric))
-    print('# TYPE {key} gauge'.format(key=key, metric=metric))
+    print('# TYPE {key} gauge'.format(key=key))
 
 
 def metric_print(metric, prefix=''):
@@ -187,7 +187,7 @@ def device_info(device):
         '--info', *device.smartctl_select()
     ).strip().split('\n')[3:]
 
-    matches = (device_info_re.match(l) for l in info_lines)
+    matches = (device_info_re.match(line) for line in info_lines)
     return (m.groups() for m in matches if m is not None)
 
 
@@ -267,7 +267,7 @@ def collect_ata_metrics(device):
     seen = set()
 
     reader = csv.DictReader(
-        (l.strip() for l in attribute_lines),
+        (line.strip() for line in attribute_lines),
         fieldnames=SmartAttribute._fields[:-1],
         restkey=SmartAttribute._fields[-1], delimiter=' ')
     for entry in reader:
@@ -294,7 +294,7 @@ def collect_ata_metrics(device):
 
             for col in 'value', 'worst', 'threshold', 'raw_value':
                 yield Metric(
-                    'attr_{col}'.format(name=entry["name"], col=col),
+                    'attr_{col}'.format(col=col),
                     labels, entry[col])
 
             seen.add(entry['name'])
@@ -379,6 +379,7 @@ def main():
             previous_name = m.name
 
         metric_print(m, 'smartmon_')
+
 
 if __name__ == '__main__':
     main()

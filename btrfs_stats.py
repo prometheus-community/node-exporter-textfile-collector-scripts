@@ -3,11 +3,11 @@
 # Collect per-device btrfs filesystem errors.
 # Designed to work on Debian and Centos 6 (with python2.6).
 
-import collections
 import glob
 import os
 import re
 import subprocess
+
 
 def get_btrfs_mount_points():
     """List all btrfs mount points.
@@ -20,6 +20,7 @@ def get_btrfs_mount_points():
             parts = line.split()
             if parts[2] == "btrfs":
                 yield parts[1]
+
 
 def get_btrfs_errors(mountpoint):
     """Get per-device errors for a btrfs mount point.
@@ -48,6 +49,7 @@ def get_btrfs_errors(mountpoint):
             raise RuntimeError("unexpected output from btrfs: '%s'" % line)
         yield m.group(1), m.group(2), int(m.group(3))
 
+
 def btrfs_error_metrics():
     """Collect btrfs error metrics.
 
@@ -59,7 +61,6 @@ def btrfs_error_metrics():
         "# TYPE %s counter" % metric,
         "# HELP %s number of btrfs errors" % metric,
     ]
-    errors_by_device = collections.defaultdict(dict)
     for mountpoint in get_btrfs_mount_points():
         for device, error_type, error_count in get_btrfs_errors(mountpoint):
             contents.append(
@@ -70,6 +71,9 @@ def btrfs_error_metrics():
         # return metrics if there are actual btrfs filesystems found
         # (i.e. `contents` contains more than just TYPE and HELP).
         return contents
+    else:
+        return []
+
 
 def btrfs_allocation_metrics():
     """Collect btrfs allocation metrics.
@@ -102,11 +106,13 @@ def btrfs_allocation_metrics():
                     value = int(f.read().strip())
                     contents.append('%s_%s{fs="%s",type="%s"} %d' % (
                         prefix, m, fs, type_, value))
-    if len(contents) > 2*len(metric_to_filename):
+    if len(contents) > 2 * len(metric_to_filename):
         return contents
+    else:
+        return []
+
 
 if __name__ == "__main__":
-    contents = ((btrfs_error_metrics() or []) +
-                (btrfs_allocation_metrics() or []))
+    contents = btrfs_error_metrics() + btrfs_allocation_metrics()
 
     print("\n".join(contents))

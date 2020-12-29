@@ -63,7 +63,12 @@ def main():
         dir_path, basename = os.path.split(library)
         basename = basename.replace('"', '\\"')
         dir_path = dir_path.replace('"', '\\"')
-        print('{0}{{library_path="{1}", library_name="{2}"}} {3}'.format(metric_name, dir_path, basename, count))
+        print('{0}{{library_path="{1}", library_name="{2}"}} {3}'.format(
+            metric_name,
+            dir_path,
+            basename,
+            count)
+        )
 
 
 if __name__ == "__main__":
