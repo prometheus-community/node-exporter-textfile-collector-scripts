@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Prometheus exporter for 3ware RAID controllers
 #
@@ -37,13 +37,13 @@ METRICS = {}
 METRIC_PREFIX = 'tw_cli'
 
 def exit_error(msg):
-    print METRIC_PREFIX + "_cli_error{message=\"" + str(msg) + "\"}\t1"
+    print(METRIC_PREFIX + "_cli_error{message=\"" + str(msg) + "\"}\t1")
     sys.exit(1)
 
 def exit_clean():
     global METRICS
     for mk, mv in METRICS.items():
-        print METRIC_PREFIX + '_' + mk + "\t" + str(mv)
+        print(METRIC_PREFIX + '_' + mk + "\t" + str(mv))
     sys.exit(0)
 
 def add_metric(metric, labels, value):
@@ -71,7 +71,7 @@ def run(cmd, stripOutput=True):
         exit_error("internal python error - no cmd supplied for 3ware utility")
     try:
         process = Popen(BIN, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-    except OSError, error:
+    except OSError as error:
         error = str(error)
         if error == "No such file or directory":
             exit_error("Cannot find 3ware utility '%s'" % BIN)
@@ -84,7 +84,7 @@ def run(cmd, stripOutput=True):
 
     try:
         stdout, stderr = process.communicate(cmd)
-    except OSError, error:
+    except OSError as error:
         exit_error("unable to communicate with 3ware utility - %s" % error)
 
 
@@ -128,8 +128,8 @@ def test_arrays(verbosity, warn_true=False):
         unit_lines = run("/%s show unitstatus" % controller)
         if verbosity >= 3:
             for unit_line in unit_lines:
-                print unit_line
-            print
+                print(unit_line)
+            print()
 
         for unit_line in unit_lines:
             unit_line = unit_line.split()
@@ -179,8 +179,8 @@ def test_drives(verbosity, warn_true=False):
 
         if verbosity >= 3:
             for drive_line in drive_lines:
-                print drive_line
-            print
+                print(drive_line)
+            print()
 
         for drive_line in drive_lines:
             drive_line = drive_line.split()
@@ -222,12 +222,12 @@ def collect_details(cmdprefix, detailsMap, metric, injectedLabels, verbosity):
     for line in lines:
         if re.match('^' + cmdprefix + ' (.+?)= (.+?)$', line):
             if verbosity >= 3:
-                print line
+                print(line)
             result = re.split('\S+ (.+?)= (.+?)$', line)
             #print "RESULT: " + str(result)
             k = result[1].strip()
             v = result[2].strip()
-            if k in detailsMap.keys():
+            if k in detailsMap:
                 if detailsMap[k]['parser']:
                     v = detailsMap[k]['parser'](v)
                 # if this field is meant for a separate metric, do it
@@ -356,17 +356,17 @@ def main():
     incl_info    = options.incl_info
 
     if version:
-        print __version__
+        print(__version__)
         sys.exit(OK)
 
     if arrays_only and drives_only:
-        print "You cannot use the -a and -d switches together, they are",
-        print "mutually exclusive\n"
+        print("You cannot use the -a and -d switches together, they are", end=' ')
+        print("mutually exclusive\n")
         parser.print_help()
         sys.exit(1)
     elif drives_only and warn_true:
-        print "You cannot use the -d and -w switches together"
-        print "Array warning states are invalid when testing only drives\n"
+        print("You cannot use the -d and -w switches together")
+        print("Array warning states are invalid when testing only drives\n")
         parser.print_help()
         sys.exit(1)
 
@@ -387,5 +387,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print "Caught Control-C..."
+        print("Caught Control-C...")
         sys.exit(1)
