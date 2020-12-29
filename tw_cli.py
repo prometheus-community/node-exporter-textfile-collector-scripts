@@ -26,6 +26,7 @@ from subprocess import Popen, PIPE, STDOUT
 
 __version__ = '0.1.0'
 
+BIN = None
 METRICS = {}
 METRIC_PREFIX = 'tw_cli'
 
@@ -49,12 +50,6 @@ def add_metric(metric, labels, value):
         labelstrs += ['{}="{}"'.format(lk, lv)]
     labelstr = ','.join(labelstrs)
     METRICS[metric + '{' + labelstr + '}'] = str(value)
-
-
-if os.geteuid() != 0:
-    exit_error("You must be root to run this plugin")
-
-BIN = None
 
 
 def _set_twcli_binary():
@@ -359,6 +354,9 @@ def main():
         print("Array warning states are invalid when testing only drives\n")
         parser.print_help()
         sys.exit(1)
+
+    if os.geteuid() != 0:
+        exit_error("You must be root to run this plugin")
 
     _set_twcli_binary()
 
