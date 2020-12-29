@@ -86,8 +86,8 @@ class Device(collections.namedtuple('DeviceBase', 'path opts')):
     @property
     def base_labels(self):
         if '+' in self.type:
-            return {'dev': self.path, 'disk': self.type.partition("+")[2]}
-        return {'disk': self.path}
+            return {'device': self.path, 'disk': self.type.partition("+")[2]}
+        return {'device': self.path}
 
     def smartctl_select(self):
         return ['--device', self.type, self.path]
