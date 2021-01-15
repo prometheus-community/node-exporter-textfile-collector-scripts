@@ -98,7 +98,7 @@ def metric_key(metric, prefix=''):
 def metric_format(metric, prefix=''):
     key = metric_key(metric, prefix)
     labels = ','.join(
-        '{k}="{v}"'.format(k=k, v=v) for k, v in metric.labels.items())
+        '{k}="{v}"'.format(k=k, v=v.replace('"', '\\"')) for k, v in metric.labels.items())
     value = decimal.Decimal(metric.value)
 
     return '{key}{{{labels}}} {value}'.format(
