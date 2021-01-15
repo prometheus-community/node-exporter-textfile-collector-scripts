@@ -15,6 +15,10 @@ upgrades="$(/usr/bin/apt-get --just-print dist-upgrade \
            print "apt_upgrades_pending{origin=\"" $2 "\",arch=\"" $NF "\"} " $1}'
 )"
 
+autoremove="$(/usr/bin/apt-get --just-print autoremove \
+  | /usr/bin/awk '/^Remv/{a++}END{printf "apt_autoremove_pending %d", a}'
+)"
+
 echo '# HELP apt_upgrades_pending Apt package pending updates by origin.'
 echo '# TYPE apt_upgrades_pending gauge'
 if [[ -n "${upgrades}" ]] ; then
@@ -22,6 +26,10 @@ if [[ -n "${upgrades}" ]] ; then
 else
   echo 'apt_upgrades_pending{origin="",arch=""} 0'
 fi
+
+echo '# HELP apt_autoremove_pending Apt package pending autoremove.'
+echo '# TYPE apt_autoremove_pending gauge'
+echo "${autoremove}"
 
 echo '# HELP node_reboot_required Node reboot is required for software updates.'
 echo '# TYPE node_reboot_required gauge'
