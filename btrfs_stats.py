@@ -40,7 +40,7 @@ def get_btrfs_errors(mountpoint):
     if p.returncode != 0:
         raise RuntimeError("btrfs returned exit code %d" % p.returncode)
     for line in stdout.splitlines():
-        if line == '':
+        if not line:
             continue
         # Sample line:
         # [/dev/vdb1].flush_io_errs   0
