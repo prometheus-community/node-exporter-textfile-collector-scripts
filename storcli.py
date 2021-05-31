@@ -75,7 +75,7 @@ def handle_common_controller(response):
         response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop(
             'ROC temperature(Degree Celc' + 'ius)'
         )
-    add_metric('temperature', baselabel, int(response['HwCfg']['ROC temperature(Degree Celsius)']))
+        add_metric('temperature', baselabel, int(response['HwCfg']['ROC temperature(Degree Celsius)']))
 
 
 def handle_sas_controller(response):
