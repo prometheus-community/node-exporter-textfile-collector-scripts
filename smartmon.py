@@ -9,6 +9,8 @@ import shlex
 import subprocess
 import sys
 
+from os import listdir, path
+
 device_info_re = re.compile(r'^(?P<k>[^:]+?)(?:(?:\sis|):)\s*(?P<v>.*)$')
 
 ata_error_count_re = re.compile(
@@ -116,14 +118,36 @@ def metric_print(metric, prefix=''):
     print(metric_format(metric, prefix))
 
 
+def find_smartctl():
+    loc = "smartctl"
+    locations = [
+        "/usr/bin",
+        "/usr/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/opt/local/sbin",
+        "/opt/local/sbin",
+        "/bin",
+        "/sbin",
+    ]
+
+    for location in locations:
+        if path.isdir(location):
+            for file in listdir(location):
+                if "smartctl" == file:
+                    loc = f"{location}/smartctl"
+    return loc
+
+
 def smart_ctl(*args, check=True):
     """Wrapper around invoking the smartctl binary.
 
     Returns:
         (str) Data piped to stdout by the smartctl subprocess.
     """
+    smartctl_location = find_smartctl()
     return subprocess.run(
-        ['smartctl', *args], stdout=subprocess.PIPE, check=check
+        [smartctl_location, *args], stdout=subprocess.PIPE, check=check
     ).stdout.decode('utf-8')
 
 
