@@ -70,10 +70,10 @@ SMARTMONATTRS
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
 
 parse_smartctl_attributes() {
-  local disk="$1" disk_type="$2"
-  local disk_name="$(echo "${disk}" | cut -f3 -d/)"
+  local disk="$1" disk_type="$2" disk_name rotational
+  disk_name="$(echo "${disk}" | cut -f3 -d/)"
   if [ "${disk_type}" != "nvme" ]; then
-    local rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
+    rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
   fi
   local labels="disk=\"${disk}\",type=\"${disk_type}\",rotational=\"${rotational}\""
   sed 's/^ \+//g' |
@@ -83,10 +83,10 @@ parse_smartctl_attributes() {
 }
 
 parse_smartctl_scsi_attributes() {
-  local disk="$1" disk_type="$2"
-  local disk_name="$(echo "${disk}" | cut -f3 -d/)"
+  local disk="$1" disk_type="$2" disk_name rotational
+  disk_name="$(echo "${disk}" | cut -f3 -d/)"
   if [ "${disk_type}" != "nvme" ]; then
-    local rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
+    rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
   fi
   local labels="disk=\"${disk}\",type=\"${disk_type}\",rotational=\"${rotational}\""
   while read -r line; do
@@ -111,10 +111,10 @@ parse_smartctl_scsi_attributes() {
 
 parse_smartctl_info() {
   local -i smart_available=0 smart_enabled=0 smart_healthy=
-  local disk="$1" disk_type="$2"
-  local disk_name="$(echo "${disk}" | cut -f3 -d/)"
+  local disk="$1" disk_type="$2" disk_name rotational
+  disk_name="$(echo "${disk}" | cut -f3 -d/)"
   if [ "${disk_type}" != "nvme" ]; then
-    local rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
+    rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
   fi  
   local model_family='' device_model='' serial_number='' fw_version='' vendor='' product='' revision='' lun_id='' 
   while read -r line; do
