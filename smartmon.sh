@@ -70,7 +70,7 @@ SMARTMONATTRS
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
 
 parse_smartctl_attributes() {
-  local disk="$1" local disk_type="$2"
+  local disk="$1" disk_type="$2"
   local disk_name="$(echo "${disk}" | cut -f3 -d/)"
   if [ "${disk_type}" != "nvme" ]; then
     local rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
@@ -83,7 +83,7 @@ parse_smartctl_attributes() {
 }
 
 parse_smartctl_scsi_attributes() {
-  local disk="$1" local disk_type="$2"
+  local disk="$1" disk_type="$2"
   local disk_name="$(echo "${disk}" | cut -f3 -d/)"
   if [ "${disk_type}" != "nvme" ]; then
     local rotational="$(cat /sys/block/"${disk_name}"/queue/rotational)"
