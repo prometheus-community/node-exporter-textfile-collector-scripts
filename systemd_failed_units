@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo '# TYPE node_systemd_failed_units gauge'
+echo '# HELP node_systemd_failed_units failed systemd units'
+echo "node_systemd_failed_units $(systemctl list-units --failed -q | wc -l)"
