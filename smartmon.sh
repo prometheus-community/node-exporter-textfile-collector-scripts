@@ -113,7 +113,7 @@ parse_smartctl_info() {
     case "${info_type}" in
     Model_Family) model_family="${info_value}" ;;
     Device_Model) device_model="${info_value}" ;;
-    Serial_Number) serial_number="${info_value}" ;;
+    Serial_Number|Serial_number) serial_number="${info_value}" ;;
     Firmware_Version) fw_version="${info_value}" ;;
     Vendor) vendor="${info_value}" ;;
     Product) product="${info_value}" ;;
