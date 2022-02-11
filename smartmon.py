@@ -203,6 +203,11 @@ def device_smart_capabilities(device):
             (bool): True whenever SMART is available, False otherwise.
             (bool): True whenever SMART is enabled, False otherwise.
     """
+
+    # NVME devices are SMART capable
+    if device.type == 'nvme':
+        return True, True
+
     groups = device_info(device)
 
     state = {
@@ -325,6 +330,44 @@ def collect_ata_error_count(device):
     yield Metric('device_errors', device.base_labels, error_count)
 
 
+def collect_nvme_metrics(device):
+    # Fetch NVME metrics
+    attributes = smart_ctl(
+        '--attributes', *device.smartctl_select()
+    )
+
+    # replace multiple occurrences of whitespaces with a singel whitespace
+    attributes = re.sub(r'[\t\x20]+', ' ', attributes)
+
+    # Turn smartctl output into a list of lines and skip to the table of
+    # SMART attributes.
+    attribute_lines = attributes.strip().split('\n')[6:]
+    for line in attribute_lines:
+        label, value = line.split(':')
+        if label == 'Available Spare':
+            yield Metric('available_spare_ratio', device.base_labels, value[0:-1])
+        elif label == 'Available Spare Threshold':
+            yield Metric('available_spare_threshold_ratio', device.base_labels, value[0:-1])
+        elif label == 'Percentage Used':
+            yield Metric('percentage_used_ratio', device.base_labels, value[0:-1])
+        elif label == 'Power Cycle':
+            yield Metric('power_cycles_total', device.base_labels, value)
+        elif label == 'Power On Hours':
+            yield Metric('power_on_hours_total', device.base_labels, value.replace(',', ''))
+        elif label == 'Temperature':
+            yield Metric('temperature_celcius', device.base_labels, value.replace(' Celsius', ''))
+        elif label == 'Unsafe Shutdowns':
+            yield Metric('unsafe_shutdowns_total', device.base_labels, value)
+        elif label == 'Media and Data Integrity Errors':
+            yield Metric('media_errors_total', device.base_labels, value)
+        elif label == 'Error Information Log Entries':
+            yield Metric('num_err_log_entries_total', device.base_labels, value)
+        elif label == 'Warning Comp. Temperature Time':
+            yield Metric('warning_temperature_time_total', device.base_labels, value)
+        elif label == 'Critical Comp. Temperature Time':
+            yield Metric('critical_temperature_time_total', device.base_labels, value)
+
+
 def collect_disks_smart_metrics(wakeup_disks):
     now = int(datetime.datetime.utcnow().timestamp())
 
@@ -362,6 +405,8 @@ def collect_disks_smart_metrics(wakeup_disks):
 
             yield from collect_ata_error_count(device)
 
+        if device.type == 'nvme':
+            yield from collect_nvme_metrics(device)
 
 def main():
     parser = argparse.ArgumentParser()
