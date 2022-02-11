@@ -408,6 +408,7 @@ def collect_disks_smart_metrics(wakeup_disks):
         if device.type == 'nvme':
             yield from collect_nvme_metrics(device)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true')
