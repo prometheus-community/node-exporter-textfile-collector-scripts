@@ -171,7 +171,7 @@ containsDisk() {
         local device_list_filter=("$@")
 
         for device in "${device_list_filter[@]}"; do
-                device_serial=$(echo $device | cut -f3 -d'|')
+                device_serial=$(echo "$device" | cut -f3 -d'|')
                 if [[ "$serial_to_compare" == "$device_serial" ]]; then
                         echo "1"
                         break
@@ -181,11 +181,11 @@ containsDisk() {
 
 # Create a list of unique disks
 device_disk_list() {
-        smartctl_device_list=($($smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}'))
+	mapfile -t smartctl_device_list < <("$smartctl" --scan-open | awk '/^\/dev/{print $1 "|" $3}')
 
         for device in "${smartctl_device_list[@]}"; do
-                disk="$(echo ${device} | cut -f1 -d '|')"
-                serial="$($smartctl -i $disk | tr -d ' ' | awk -F':' '/Serial/ {print $2}')"
+                disk="$(echo "${device}" | cut -f1 -d '|')"
+                serial="$($smartctl -i "$disk" | tr -d ' ' | awk -F':' '/Serial/ {print $2}')"
 
                 disk_check=$(containsDisk "${serial}" "${device_list[@]}")
                 if [[ ! $disk_check -eq "1" ]]; then
@@ -204,7 +204,7 @@ fi
 
 # Get an unique list of disks in case they are in multipath
 device_disk_list
-for device in ${device_list[@]}; do
+for device in "${device_list[@]}"; do
   disk="$(echo "${device}" | cut -f1 -d'|')"
   type="$(echo "${device}" | cut -f2 -d'|')"
   active=1
