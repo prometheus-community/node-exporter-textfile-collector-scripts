@@ -181,7 +181,7 @@ containsDisk() {
 
 # Create a list of unique disks
 device_disk_list() {
-	mapfile -t smartctl_device_list < <("$smartctl" --scan-open | awk '/^\/dev/{print $1 "|" $3}')
+        mapfile -t smartctl_device_list < <("$smartctl" --scan-open | awk '/^\/dev/{print $1 "|" $3}')
 
         for device in "${smartctl_device_list[@]}"; do
                 disk="$(echo "${device}" | cut -f1 -d '|')"
