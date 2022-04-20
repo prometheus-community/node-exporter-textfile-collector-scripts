@@ -68,20 +68,7 @@ workload_minutes
 SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
-
-# We should not hardcode the smartctl binary path,
-# instead for those OS that does not follow the
-# same default installation path, we should add it here.
-os_detect() {
-        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-                smartctl="/usr/sbin/smartctl"
-        elif [[ "$OSTYPE" == "freebsd"* ]]; then
-                smartctl="/usr/local/sbin/smartctl"
-        else
-                smartctl="/usr/sbin/smartctl"
-        fi
-}
-os_detect
+smartctl=$(command -v smartctl)
 
 parse_smartctl_attributes() {
   local disk="$1"
@@ -198,7 +185,7 @@ device_disk_list() {
 
         for device in "${smartctl_device_list[@]}"; do
                 disk="$(echo ${device} | cut -f1 -d '|')"
-                serial="$($smartctl -i $disk | grep Serial | tr -d ' ' | awk -F':' '{print $2}')"
+                serial="$($smartctl -i $disk | tr -d ' ' | awk -F':' '/Serial/ {print $2}')"
 
                 disk_check=$(containsDisk "${serial}" "${device_list[@]}")
                 if [[ ! $disk_check -eq "1" ]]; then
