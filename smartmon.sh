@@ -69,6 +69,20 @@ SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
 
+# We should not hardcode the smartctl binary path,
+# instead for those OS that does not follow the
+# same default installation path, we should add it here.
+os_detect() {
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                smartctl="/usr/sbin/smartctl"
+        elif [[ "$OSTYPE" == "freebsd"* ]]; then
+                smartctl="/usr/local/sbin/smartctl"
+        else
+                smartctl="/usr/sbin/smartctl"
+        fi
+}
+os_detect
+
 parse_smartctl_attributes() {
   local disk="$1"
   local disk_type="$2"
@@ -162,6 +176,37 @@ format_output() {
     awk -F'{' "${output_format_awk}"
 }
 
+# If the system is configured with multipath, we might end up having metrics of
+# duplicated disks.
+containsDisk() {
+        local serial_to_compare="$1"
+        shift
+        local device_list_filter=("$@")
+
+        for device in "${device_list_filter[@]}"; do
+                device_serial=$(echo $device | cut -f3 -d'|')
+                if [[ "$serial_to_compare" == "$device_serial" ]]; then
+                        echo "1"
+                        break
+                fi
+        done
+}
+
+# Create a list of unique disks
+device_disk_list() {
+        smartctl_device_list=($($smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}'))
+
+        for device in "${smartctl_device_list[@]}"; do
+                disk="$(echo ${device} | cut -f1 -d '|')"
+                serial="$($smartctl -i $disk | grep Serial | tr -d ' ' | awk -F':' '{print $2}')"
+
+                disk_check=$(containsDisk "${serial}" "${device_list[@]}")
+                if [[ ! $disk_check -eq "1" ]]; then
+                        device_list+=( "${device}|${serial}" )
+                fi
+        done
+}
+
 smartctl_version="$(/usr/sbin/smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
 
 echo "smartctl_version{version=\"${smartctl_version}\"} 1" | format_output
@@ -170,9 +215,9 @@ if [[ "$(expr "${smartctl_version}" : '\([0-9]*\)\..*')" -lt 6 ]]; then
   exit
 fi
 
-device_list="$(/usr/sbin/smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}')"
-
-for device in ${device_list}; do
+# Get an unique list of disks in case they are in multipath
+device_disk_list
+for device in ${device_list[@]}; do
   disk="$(echo "${device}" | cut -f1 -d'|')"
   type="$(echo "${device}" | cut -f2 -d'|')"
   active=1
