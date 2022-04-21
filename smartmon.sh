@@ -87,15 +87,6 @@ parse_smartctl_scsi_attributes() {
   while read -r line; do
     attr_type="$(echo "${line}" | tr '=' ':' | cut -f1 -d: | sed 's/^ \+//g' | tr ' ' '_')"
     attr_value="$(echo "${line}" | tr '=' ':' | cut -f2 -d: | sed 's/^ \+//g')"
-
-    # -x additional scsi attributes
-    case "${line}" in
-      *"Recovered via rewrite in-place"*)
-        attr_type="Recovered_via_rewrite_in_place"
-        ((recovered_via_rewrite_in_place++))
-        ;;
-    esac
-
     case "${attr_type}" in
     number_of_hours_powered_up_) power_on="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Current_Drive_Temperature) temp_cel="$(echo "${attr_value}" | cut -f1 -d' ' | awk '{ printf "%e\n", $1 }')" ;;
@@ -103,7 +94,6 @@ parse_smartctl_scsi_attributes() {
     Blocks_received_from_initiator_) lbas_written="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Accumulated_start-stop_cycles) power_cycle="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Elements_in_grown_defect_list) grown_defects="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
-    Recovered_via_rewrite_in_place) rec_viarewrite_in_place="$(echo '${recovered_via_rewrite_in_place}')" ;;
     esac
   done
   [ -n "$power_on" ] && echo "power_on_hours_raw_value{${labels},smart_id=\"9\"} ${power_on}"
@@ -112,7 +102,6 @@ parse_smartctl_scsi_attributes() {
   [ -n "$lbas_written" ] && echo "total_lbas_written_raw_value{${labels},smart_id=\"242\"} ${lbas_written}"
   [ -n "$power_cycle" ] && echo "power_cycle_count_raw_value{${labels},smart_id=\"12\"} ${power_cycle}"
   [ -n "$grown_defects" ] && echo "grown_defects_count_raw_value{${labels},smart_id=\"12\"} ${grown_defects}"
-  [ -n "$rec_viarewrite_in_place" ] && echo "recovered_via_rewrite_in_place{${labels}} ${recovered_via_rewrite_in_place}"
 }
 
 parse_smartctl_info() {
@@ -231,7 +220,7 @@ for device in "${device_list[@]}"; do
   case ${type} in
   sat) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
   sat+megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
-  scsi) "${smartctl}" -A -x -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  scsi) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
   megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
   nvme*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
   *)
