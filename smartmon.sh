@@ -203,10 +203,10 @@ parse_smartctl_scsi_attributes() {
   [ -n "$power_cycle" ] && echo "power_cycle_count_raw_value{${labels},smart_id=\"12\"} ${power_cycle}"
   [ -n "$grown_defects" ] && echo "grown_defects_count_raw_value{${labels},smart_id=\"12\"} ${grown_defects}"
   # -x scsi extra attributes
-  [ -n "$res_00" ] && echo "reserved_[0x0]{${labels} ${reserved_00}}"
+  [ -n "$res_00" ] && echo "reserved_00{${labels}} ${reserved_00}"
   [ -n "$req_write_or_reassign_blocks_commands" ] && echo "require_write_or_reassign_blocks_command{${labels}} ${require_write_or_reassign_blocks_command}"
   [ -n "$success_reassigned" ] && echo "successfully_reassigned{${labels}} ${successfully_reassigned}"
-  [ -n "$res_03" ] && echo "reserved_[0x3]{${labels}} ${reserved_03}"
+  [ -n "$res_03" ] && echo "reserved_03{${labels}} ${reserved_03}"
   [ -n "$reass_by_disk_failed" ] && echo "reassignment_by_disk_failed{${labels}} ${reassigned_by_disk_failed}"
   [ -n "$rec_viarewrite_in_place" ] && echo "recovered_via_rewrite_in_place{${labels}} ${recovered_via_rewrite_in_place}"
   [ -n "$reass_by_app_has_valid_data" ] && echo "reassigned_by_app_has_valid_data{${labels}} ${reassigned_by_app_has_valid_data}"
