@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script informed by the collectd monitoring script for smartmontools (using smartctl)
 # by Samuel B. <samuel_._behan_(at)_dob_._sk> (c) 2012
 # source at: http://devel.dob.sk/collectd-scripts/
@@ -68,7 +68,20 @@ workload_minutes
 SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
-smartctl=$(command -v smartctl)
+
+# We should not hardcode the smartctl binary path,
+# instead for those OS that does not follow the
+# same default installation path, we should add it here.
+os_detect() {
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                smartctl="/usr/sbin/smartctl"
+        elif [[ "$OSTYPE" == "freebsd"* ]]; then
+                smartctl="/usr/local/sbin/smartctl"
+        else
+                smartctl="/usr/sbin/smartctl"
+        fi
+}
+os_detect
 
 parse_smartctl_attributes() {
   local disk="$1"
