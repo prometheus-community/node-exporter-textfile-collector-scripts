@@ -217,7 +217,7 @@ parse_smartctl_scsi_attributes() {
   [ -n "$grown_defects" ] && echo "grown_defects_count_raw_value{${labels},smart_id=\"12\"} ${grown_defects}"
   # -x scsi extra attributes
   [ -n "$res_00" ] && echo "reserved_00{${labels}} ${reserved_00}"
-  [ -n "$req_write_or_reassign_blocks_commands" ] && echo "require_write_or_reassign_blocks_command{${labels}} ${require_write_or_reassign_blocks_command}"
+  [ -n "$req_write_or_reassign_blocks_command" ] && echo "require_write_or_reassign_blocks_command{${labels}} ${require_write_or_reassign_blocks_command}"
   [ -n "$success_reassigned" ] && echo "successfully_reassigned{${labels}} ${successfully_reassigned}"
   [ -n "$res_03" ] && echo "reserved_03{${labels}} ${reserved_03}"
   [ -n "$reass_by_disk_failed" ] && echo "reassignment_by_disk_failed{${labels}} ${reassigned_by_disk_failed}"
