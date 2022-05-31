@@ -115,11 +115,11 @@ def handle_megaraid_controller(response):
                    int(cvinfo['Temp'].replace('C', ''))
                    )
         add_metric('cv_optimal', baselabel + ',cvidx="' + str(cvidx) + '"',
-                int(cvinfo['State'] == 'Optimal'))
-        add_metric('cv_degraded',baselabel + ',cvidx="' + str(cvidx) + '"',
-                int(cvinfo['State'] == 'Degraded'))
+                   int(cvinfo['State'] == 'Optimal'))
+        add_metric('cv_degraded', baselabel + ',cvidx="' + str(cvidx) + '"',
+                   int(cvinfo['State'] == 'Degraded'))
         add_metric('cv_failed', baselabel + ',cvidx="' + str(cvidx) + '"',
-                int(cvinfo['State'] == 'Failed'))
+                   int(cvinfo['State'] == 'Failed'))
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
