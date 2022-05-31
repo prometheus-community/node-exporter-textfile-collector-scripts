@@ -102,7 +102,7 @@ def handle_megaraid_controller(response):
 
     # BBU Status Optimal value is 0 for cachevault and 32 for BBU
     add_metric('battery_backup_healthy', baselabel,
-               int(response['Status']['BBU Status'] in [0, 32]))
+               int(response['Status']['BBU Status'] in [0, 32, 'NA']))
     add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
