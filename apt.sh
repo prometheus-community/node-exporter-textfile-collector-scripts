@@ -19,6 +19,8 @@ autoremove="$(/usr/bin/apt-get --just-print autoremove \
   | /usr/bin/awk '/^Remv/{a++}END{printf "apt_autoremove_pending %d", a}'
 )"
 
+security_upgrades="$(apt list --upgradable 2>&1 | grep "\-security" | wc -l)"
+
 echo '# HELP apt_upgrades_pending Apt package pending updates by origin.'
 echo '# TYPE apt_upgrades_pending gauge'
 if [[ -n "${upgrades}" ]] ; then
@@ -38,3 +40,7 @@ if [[ -f '/run/reboot-required' ]] ; then
 else
   echo 'node_reboot_required 0'
 fi
+
+echo '# HELP apt_securityupgrades_pending Apt package pending updates by origin.'
+echo '# TYPE apt_securityupgrades_pending gauge'
+echo "apt_securityupgrades_pending ${security_upgrades}"
