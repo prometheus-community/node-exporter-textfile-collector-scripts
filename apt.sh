@@ -19,7 +19,7 @@ autoremove="$(/usr/bin/apt-get --just-print autoremove \
   | /usr/bin/awk '/^Remv/{a++}END{printf "apt_autoremove_pending %d", a}'
 )"
 
-security_upgrades="$(apt list --upgradable 2>&1 | grep "\-security" | wc -l)"
+security_upgrades="$(apt list --upgradable 2>&1 | grep -c "\-security" )"
 
 echo '# HELP apt_upgrades_pending Apt package pending updates by origin.'
 echo '# TYPE apt_upgrades_pending gauge'
