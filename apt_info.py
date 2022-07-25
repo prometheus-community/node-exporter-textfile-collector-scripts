@@ -3,6 +3,8 @@
 # Description: Expose metrics from apt. This is inspired by and
 # intended to be a replacement for the original apt.sh.
 #
+# Dependencies: python3-apt
+#
 # Author: Kyle Fazzari <kyrofa@ubuntu.com>
 
 import apt
