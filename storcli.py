@@ -102,7 +102,7 @@ def handle_megaraid_controller(response):
 
     # BBU Status Optimal value is 0 for cachevault and 32 for BBU
     add_metric('battery_backup_healthy', baselabel,
-               int(response['Status']['BBU Status'] in [0, 32]))
+               int(response['Status']['BBU Status'] in [0, 32, 'NA']))
     add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
@@ -114,6 +114,12 @@ def handle_megaraid_controller(response):
                    baselabel + ',cvidx="' + str(cvidx) + '"',
                    int(cvinfo['Temp'].replace('C', ''))
                    )
+        add_metric('cv_optimal', baselabel + ',cvidx="' + str(cvidx) + '"',
+                   int(cvinfo['State'] == 'Optimal'))
+        add_metric('cv_degraded', baselabel + ',cvidx="' + str(cvidx) + '"',
+                   int(cvinfo['State'] == 'Degraded'))
+        add_metric('cv_failed', baselabel + ',cvidx="' + str(cvidx) + '"',
+                   int(cvinfo['State'] == 'Failed'))
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
