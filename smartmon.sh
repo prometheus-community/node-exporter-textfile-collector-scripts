@@ -93,6 +93,7 @@ parse_smartctl_scsi_attributes() {
     Blocks_received_from_initiator_) lbas_written="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Accumulated_start-stop_cycles) power_cycle="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Elements_in_grown_defect_list) grown_defects="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
+    Accumulated_load-unload_cycles) load_cycle="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     esac
   done
   [ -n "$power_on" ] && echo "power_on_hours_raw_value{${labels},smart_id=\"9\"} ${power_on}"
@@ -101,6 +102,7 @@ parse_smartctl_scsi_attributes() {
   [ -n "$lbas_written" ] && echo "total_lbas_written_raw_value{${labels},smart_id=\"242\"} ${lbas_written}"
   [ -n "$power_cycle" ] && echo "power_cycle_count_raw_value{${labels},smart_id=\"12\"} ${power_cycle}"
   [ -n "$grown_defects" ] && echo "grown_defects_count_raw_value{${labels},smart_id=\"12\"} ${grown_defects}"
+  [ -n "$load_cycle" ] && echo "load_cycle_count_raw_value{${labels},smart_id=\"193\"} ${load_cycle}"
 }
 
 parse_smartctl_info() {
