@@ -6,6 +6,6 @@ do
    then
          echo "node_fstab_mount_status{filesystem=\"$mount\"} 0"
    else
-         echo "node_fstab_mount_status{filesystem=\"$mount\"} 1" >&1
+         echo "node_fstab_mount_status{filesystem=\"$mount\"} 1"
    fi
 done
