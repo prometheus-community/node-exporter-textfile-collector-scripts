@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script informed by the collectd monitoring script for smartmontools (using smartctl)
 # by Samuel B. <samuel_._behan_(at)_dob_._sk> (c) 2012
 # source at: http://devel.dob.sk/collectd-scripts/
@@ -69,6 +69,20 @@ SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
 
+# We should not hardcode the smartctl binary path,
+# instead for those OS that does not follow the
+# same default installation path, we should add it here.
+os_detect() {
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                smartctl="/usr/sbin/smartctl"
+        elif [[ "$OSTYPE" == "freebsd"* ]]; then
+                smartctl="/usr/local/sbin/smartctl"
+        else
+                smartctl="/usr/sbin/smartctl"
+        fi
+}
+os_detect
+
 parse_smartctl_attributes() {
   local disk="$1"
   local disk_type="$2"
@@ -86,6 +100,84 @@ parse_smartctl_scsi_attributes() {
   while read -r line; do
     attr_type="$(echo "${line}" | tr '=' ':' | cut -f1 -d: | sed 's/^ \+//g' | tr ' ' '_')"
     attr_value="$(echo "${line}" | tr '=' ':' | cut -f2 -d: | sed 's/^ \+//g')"
+
+    case "${line}" in
+      # -x additional scsi attributes
+      *"Reserved [0x0]"*)
+        attr_type="Reserved_00"
+        ((reserved_00++))
+        ;;
+      *"Require Write or Reassign Blocks command"*)
+        attr_type="Require_Write_or_Reassign_Blocks_command"
+        ((require_write_or_reassign_blocks_command++))
+        ;;
+      *"Successfully reassigned"*)
+        attr_type="Successfully_reassigned"
+        ((successfully_reassigned++))
+        ;;
+      *"Reserved [0x3]"*)
+        attr_type="Reserved_03"
+        ((reserved_03++))
+        ;;
+      *"Reassignment by disk failed"*)
+        attr_type="Reassigned_by_disk_failed"
+        ((reassigned_by_disk_failed++))
+        ;;
+      *"Recovered via rewrite in-place"*)
+        attr_type="Recovered_via_rewrite_in_place"
+        ((recovered_via_rewrite_in_place++))
+        ;;
+      *"Reassigned by app, has valid data"*)
+        attr_type="Reassigned_by_app_has_valid_data"
+        ((reassigned_by_app_has_valid_data++))
+        ;;
+      *"Reassigned by app, has no valid data"*)
+        attr_type="Reassigned_by_app_has_no_valid_data"
+        ((reassigned_by_app_has_no_valid_data++))
+        ;;
+      *"Unsuccessfully reassigned by app"*)
+        attr_type="Unsuccessfully_reassigned_by_app"
+        ((unsuccessfully_reassigned_by_app++))
+        ;;
+      # BMS status
+      *"no scans active"*)
+        attr_type="no_scans_active"
+        attr_value="1"
+        ;;
+      *"scan is active"*)
+        attr_type="scan_is_active"
+        attr_value="1"
+        ;;
+      *"pre-scan is active"*)
+        attr_type="pre_scan_is_active"
+        attr_value="1"
+        ;;
+      *"halted due to fatal error"*)
+        attr_type="halted_due_to_fatal_error"
+        attr_value="1"
+        ;;
+      *"halted due to a vendor specific pattern of error"*)
+        attr_type="halted_due_to_a_vendor_specific_pattern_of_error"
+        attr_value="1"
+        ;;
+      *"halted due to medium formatted without P-List"*)
+        attr_type="halted_due_to_medium_formatted_without_p_list"
+        attr_value="1"
+        ;;
+      *"halted - vendor specific cause"*)
+        attr_type="halted_vendor_specific_cause"
+        attr_value="1"
+        ;;
+      *"halted due to temperature out of range"*)
+        attr_type="halted_due_to_temperature_out_of_range"
+        attr_value="1"
+        ;;
+      *"waiting until BMS interval timer expires"*)
+        attr_type="waiting_until_bms_interval_timer_expires"
+        attr_value="1"
+        ;;
+    esac
+
     case "${attr_type}" in
     number_of_hours_powered_up_) power_on="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Current_Drive_Temperature) temp_cel="$(echo "${attr_value}" | cut -f1 -d' ' | awk '{ printf "%e\n", $1 }')" ;;
@@ -93,6 +185,28 @@ parse_smartctl_scsi_attributes() {
     Blocks_received_from_initiator_) lbas_written="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Accumulated_start-stop_cycles) power_cycle="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
     Elements_in_grown_defect_list) grown_defects="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
+    # -x scsi extra attributes
+    # Reference: https://www.smartmontools.org/static/doxygen/scsiprint_8cpp.html#a595f28c7e1b92059bac5bdbeef928bfc
+    Reserved_00) res_00="$(echo '${reserved_00}')" ;;
+    Require_Write_or_Reassign_Blocks_command) req_write_or_reassign_blocks_command="$(echo '${require_write_or_reassign_blocks_command}')" ;;
+    Successfully_reassigned) success_reassigned="$(echo '${successfully_reassigned}')" ;;
+    Reserved_03) res_03="$(echo '${reserved_03}')" ;;
+    Reassigned_by_disk_failed) reass_by_disk_failed="$(echo '${reassigned_by_disk_failed}')" ;;
+    Recovered_via_rewrite_in_place) rec_viarewrite_in_place="$(echo '${recovered_via_rewrite_in_place}')" ;;
+    Reassigned_by_app_has_valid_data) reass_by_app_has_valid_data="$(echo '${reassigned_by_app_has_valid_data}')" ;;
+    Reassigned_by_app_has_no_valid_data) reass_by_app_has_no_valid_data="$(echo '${reassigned_by_app_has_no_valid_data}')" ;;
+    Unsuccessfully_reassigned_by_app) unsu_reassigned_by_app="$(echo '${unsuccessfully_reassigned_by_app}')" ;;
+    # -x BMS status
+    # Reference: https://www.smartmontools.org/static/doxygen/scsiprint_8cpp.html#a390e02ad61129f5f2ea1c3b2cb1c41ed
+    no_scans_active) n_scans_active="$(echo "${attr_value}")" ;;
+    scan_is_active) sc_is_active="$(echo "${attr_value}")" ;;
+    pre_scan_is_active) pr_scan_is_active="$(echo "${attr_value}")" ;;
+    halted_due_to_fatal_error) ha_due_to_fatal_error="$(echo "${attr_value}")" ;;
+    halted_due_to_a_vendor_specific_pattern_of_error) ha_due_to_a_vendor_specific_pattern_of_error="$(echo "${attr_value}")" ;;
+    halted_due_to_medium_formatted_without_p_list) ha_due_to_medium_formatted_without_p_list="$(echo "${attr_value}")" ;;
+    halted_vendor_specific_cause) ha_vendor_specific_cause="$(echo "${attr_value}")" ;;
+    halted_due_to_temperature_out_of_range) ha_due_to_temperature_out_of_range="$(echo "${attr_value}")" ;;
+    waiting_until_bms_interval_timer_expires) wa_until_bms_interval_timer_expires="$(echo "${attr_value}")" ;;
     esac
   done
   [ -n "$power_on" ] && echo "power_on_hours_raw_value{${labels},smart_id=\"9\"} ${power_on}"
@@ -101,6 +215,27 @@ parse_smartctl_scsi_attributes() {
   [ -n "$lbas_written" ] && echo "total_lbas_written_raw_value{${labels},smart_id=\"242\"} ${lbas_written}"
   [ -n "$power_cycle" ] && echo "power_cycle_count_raw_value{${labels},smart_id=\"12\"} ${power_cycle}"
   [ -n "$grown_defects" ] && echo "grown_defects_count_raw_value{${labels},smart_id=\"12\"} ${grown_defects}"
+  # -x scsi extra attributes
+  [ -n "$res_00" ] && echo "reserved_00{${labels}} ${reserved_00}"
+  [ -n "$req_write_or_reassign_blocks_command" ] && echo "require_write_or_reassign_blocks_command{${labels}} ${require_write_or_reassign_blocks_command}"
+  [ -n "$success_reassigned" ] && echo "successfully_reassigned{${labels}} ${successfully_reassigned}"
+  [ -n "$res_03" ] && echo "reserved_03{${labels}} ${reserved_03}"
+  [ -n "$reass_by_disk_failed" ] && echo "reassignment_by_disk_failed{${labels}} ${reassigned_by_disk_failed}"
+  [ -n "$rec_viarewrite_in_place" ] && echo "recovered_via_rewrite_in_place{${labels}} ${recovered_via_rewrite_in_place}"
+  [ -n "$reass_by_app_has_valid_data" ] && echo "reassigned_by_app_has_valid_data{${labels}} ${reassigned_by_app_has_valid_data}"
+  [ -n "$reass_by_app_has_no_valid_data" ] && echo "reassigned_by_app_has_no_valid_data{${labels}} ${reassigned_by_app_has_no_valid_data}"
+  [ -n "$unsu_reassigned_by_app" ] && echo "unsuccessfully_reassigned_by_app{${labels}} ${unsuccessfully_reassigned_by_app}"
+  # -x BMS status
+  [ -n "$n_scans_active" ] && echo "no_scans_active{${labels}} ${n_scans_active}"
+  [ -n "$sc_is_active" ] && echo "scan_is_active{${labels}} ${sc_is_active}"
+  [ -n "$pr_scan_is_active" ] && echo "pre_can_is_active{${labels}} ${pr_scan_is_active}"
+  [ -n "$ha_due_to_fatal_error" ] && echo "halted_due_to_fatal_error{${labels}} ${ha_due_to_fatal_error}"
+  [ -n "$ha_due_to_a_vendor_specific_pattern_of_error" ] && echo "halted_due_to_a_vendor_specific_pattern_of_error{${labels}} ${ha_due_to_a_vendor_specific_pattern_of_error}"
+  [ -n "$ha_due_to_medium_formatted_without_p_list" ] && echo "halted_due_to_medium_formatted_without_p_list{${labels}} ${ha_due_to_medium_formatted_without_p_list}"
+  [ -n "$ha_vendor_specific_cause" ] && echo "halted_vendor_specific_cause{${labels}} ${ha_vendor_specific_cause}"
+  [ -n "$ha_due_to_temperature_out_of_range" ] && echo "halted_due_to_temperature_out_of_range{${labels}} ${ha_due_to_temperature_out_of_range}"
+  [ -n "$wa_until_bms_interval_timer_expires" ] && echo "waiting_until_bms_interval_timer_expires{${labels}} ${wa_until_bms_interval_timer_expires}"
+
 }
 
 parse_smartctl_info() {
@@ -162,7 +297,38 @@ format_output() {
     awk -F'{' "${output_format_awk}"
 }
 
-smartctl_version="$(/usr/sbin/smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
+# If the system is configured with multipath, we might end up having metrics of
+# duplicated disks.
+containsDisk() {
+        local serial_to_compare="$1"
+        shift
+        local device_list_filter=("$@")
+
+        for device in "${device_list_filter[@]}"; do
+                device_serial=$(echo "$device" | cut -f3 -d'|')
+                if [[ "$serial_to_compare" == "$device_serial" ]]; then
+                        echo "1"
+                        break
+                fi
+        done
+}
+
+# Create a list of unique disks
+device_disk_list() {
+        mapfile -t smartctl_device_list < <("$smartctl" --scan-open | awk '/^\/dev/{print $1 "|" $3}')
+
+        for device in "${smartctl_device_list[@]}"; do
+                disk="$(echo "${device}" | cut -f1 -d '|')"
+                serial="$($smartctl -i "$disk" | tr -d ' ' | awk -F':' '/Serial/ {print $2}')"
+
+                disk_check=$(containsDisk "${serial}" "${device_list[@]}")
+                if [[ ! $disk_check -eq "1" ]]; then
+                        device_list+=( "${device}|${serial}" )
+                fi
+        done
+}
+
+smartctl_version="$("${smartctl}" -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
 
 echo "smartctl_version{version=\"${smartctl_version}\"} 1" | format_output
 
@@ -170,27 +336,27 @@ if [[ "$(expr "${smartctl_version}" : '\([0-9]*\)\..*')" -lt 6 ]]; then
   exit
 fi
 
-device_list="$(/usr/sbin/smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}')"
-
-for device in ${device_list}; do
+# Get an unique list of disks in case they are in multipath
+device_disk_list
+for device in "${device_list[@]}"; do
   disk="$(echo "${device}" | cut -f1 -d'|')"
   type="$(echo "${device}" | cut -f2 -d'|')"
   active=1
   echo "smartctl_run{disk=\"${disk}\",type=\"${type}\"}" "$(TZ=UTC date '+%s')"
   # Check if the device is in a low-power mode
-  /usr/sbin/smartctl -n standby -d "${type}" "${disk}" > /dev/null || active=0
+  "${smartctl}" -n standby -d "${type}" "${disk}" > /dev/null || active=0
   echo "device_active{disk=\"${disk}\",type=\"${type}\"}" "${active}"
   # Skip further metrics to prevent the disk from spinning up
   test ${active} -eq 0 && continue
   # Get the SMART information and health
-  /usr/sbin/smartctl -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}"
+  "${smartctl}" -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}"
   # Get the SMART attributes
   case ${type} in
-  sat) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
-  sat+megaraid*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
-  scsi) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
-  megaraid*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
-  nvme*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  sat) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
+  sat+megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
+  scsi) "${smartctl}" -A -x -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  nvme*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
   *)
       (>&2 echo "disk type is not sat, scsi, nvme or megaraid but ${type}")
     exit
