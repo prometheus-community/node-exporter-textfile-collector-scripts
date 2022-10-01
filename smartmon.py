@@ -355,7 +355,7 @@ def collect_nvme_metrics(device):
         elif label == 'Power On Hours':
             yield Metric('power_on_hours_total', device.base_labels, value.replace(',', ''))
         elif label == 'Temperature':
-            yield Metric('temperature_celcius', device.base_labels, value.replace(' Celsius', ''))
+            yield Metric('temperature_celsius', device.base_labels, value.replace(' Celsius', ''))
         elif label == 'Unsafe Shutdowns':
             yield Metric('unsafe_shutdowns_total', device.base_labels, value)
         elif label == 'Media and Data Integrity Errors':
