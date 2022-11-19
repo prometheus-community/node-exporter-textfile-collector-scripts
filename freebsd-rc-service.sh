@@ -28,7 +28,7 @@
 # - freebsd_rc_service_status{path="PATH"} STATUS
 #   where:
 #   - PATH is an absolute path to the service script
-#   - STATUS is the exit code of the "quietstatus" command of the script.
+#   - STATUS is 1 if the "quietstatus" command was successful, 0 otherwise.
 #
 # --
 #
