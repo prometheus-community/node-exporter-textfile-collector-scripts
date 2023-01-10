@@ -10,6 +10,9 @@
 # Formatting done via shfmt -i 2
 # https://github.com/mvdan/sh
 
+# Ensure predictable numeric / date formats, etc.
+export LC_ALL=C
+
 parse_smartctl_attributes_awk="$(
   cat <<'SMARTCTLAWK'
 $1 ~ /^ *[0-9]+$/ && $2 ~ /^[a-zA-Z0-9_-]+$/ {
