@@ -9,6 +9,9 @@ set -eu
 #
 # Author: Henk <henk@wearespindle.com>
 
+# Ensure predictable numeric / date formats, etc.
+export LC_ALL=C
+
 # Check if we are root
 if [ "$EUID" -ne 0 ]; then
   echo "${0##*/}: Please run as root!" >&2
