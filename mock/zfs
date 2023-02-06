@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# zfs mock script for testing zfs snapshot provider
+
+fixtures_dir=$(dirname "$0")/fixtures
+cat "${fixtures_dir}/zfs_list_-p_-H_-t_snapshot_-o_name,used,creation"
