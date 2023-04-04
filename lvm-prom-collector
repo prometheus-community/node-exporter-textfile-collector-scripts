@@ -9,7 +9,7 @@
 # -g for used and free space of logical volume groups
 # -p for used and free space of physical volumes.
 # -s for the percentage usage of the snapshots
-# -t for the percentage usage of the thin pools and their metadata
+# -t for the percentage usage of the thin pools
 #
 # * * * * *   root lvm-prom-collector -g | sponge /var/lib/prometheus/node-exporter/lvm.prom
 #
@@ -28,7 +28,7 @@ display_usage() {
   echo "Use -g for used and free space of logical volume groups."
   echo "use -p for used and free space of physical volumes."
   echo "Use -s for the percentage usage of the snapshots."
-  echo "Use -t for the percentage usage of the thin pools and their metadata."
+  echo "Use -t for the percentage usage of the thin pools."
 }
 
 if [ "$(id -u)" != "0" ]; then
@@ -105,20 +105,28 @@ if [ "$snapshots" = true ] ; then
 fi
 
 if [ "$thin_pools" = true ] ; then
-  echo "# HELP node_lvm_thin_pools_allocated percentage of allocated thin pool data"
-  echo "# TYPE node_lvm_thin_pools_allocated gauge"
-  echo "# HELP node_lvm_thin_pools_metadata percentage of allocated thin pool metadata"
-  echo "# TYPE node_lvm_thin_pools_metadata gauge"
 
   lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent,metadata_percent 2>/dev/null)
+
+  echo "# HELP node_lvm_thin_pools_allocated percentage of allocated thin pool data"
+  echo "# TYPE node_lvm_thin_pools_allocated gauge"
   echo "$lvs_output" | while IFS= read -r line ; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
     declare $line
     # Convert ',' to '.'
     data_percent=$(echo "$LVM2_DATA_PERCENT" | sed 's/\,/./' )
-    metadata_percent=$(echo "$LVM2_METADATA_PERCENT" | sed 's/\,/./' )
     echo "node_lvm_thin_pools_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $data_percent"
+  done
+
+  echo "# HELP node_lvm_thin_pools_metadata percentage of allocated thin pool metadata"
+  echo "# TYPE node_lvm_thin_pools_metadata gauge"
+  echo "$lvs_output" | while IFS= read -r line ; do
+    # Skip if the line is empty
+    [ -z "$line" ] && continue
+    declare $line
+    # Convert ',' to '.'
+    metadata_percent=$(echo "$LVM2_METADATA_PERCENT" | sed 's/\,/./' )
     echo "node_lvm_thin_pools_metadata{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $metadata_percent"
   done
 fi
