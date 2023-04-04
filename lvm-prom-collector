@@ -105,10 +105,11 @@ if [ "$snapshots" = true ] ; then
 fi
 
 if [ "$thin_pools" = true ] ; then
+
+  lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent,metadata_percent 2>/dev/null)
+
   echo "# HELP node_lvm_thin_pools_allocated percentage of allocated thin pool data"
   echo "# TYPE node_lvm_thin_pools_allocated gauge"
-
-  lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent 2>/dev/null)
   echo "$lvs_output" | while IFS= read -r line ; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
@@ -116,6 +117,17 @@ if [ "$thin_pools" = true ] ; then
     # Convert ',' to '.'
     data_percent=$(echo "$LVM2_DATA_PERCENT" | sed 's/\,/./' )
     echo "node_lvm_thin_pools_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $data_percent"
+  done
+
+  echo "# HELP node_lvm_thin_pools_metadata percentage of allocated thin pool metadata"
+  echo "# TYPE node_lvm_thin_pools_metadata gauge"
+  echo "$lvs_output" | while IFS= read -r line ; do
+    # Skip if the line is empty
+    [ -z "$line" ] && continue
+    declare $line
+    # Convert ',' to '.'
+    metadata_percent=$(echo "$LVM2_METADATA_PERCENT" | sed 's/\,/./' )
+    echo "node_lvm_thin_pools_metadata{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $metadata_percent"
   done
 fi
 
