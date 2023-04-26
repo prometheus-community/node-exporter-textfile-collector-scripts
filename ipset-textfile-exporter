@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# Expose some useful ipset related metrics
+#
+# Usage: add this to crontab:
+#
+# */5 * * * * root sh -c 'path_to_/ipset-textfile-exporter | sponge /var/lib/node_exporter/ipset.prom'
+
+# Author: Clément Bourgeois <moonpyk@gmail.com>
+set -eu
+
+if [ "$(id -u)" != "0" ]; then
+    echo 1>&2 "This script must be run with super-user privileges."
+    exit 1
+fi
+
+# We first check if the ipset tooling is installed
+if ! [ -x "$(command -v /usr/sbin/ipset)" ]; then
+    echo 1>&2 "Ipset tooling not available"
+    exit 1
+fi
+
+# Gathering available ipsets
+ipset_list=$(/usr/sbin/ipset list -n)
+
+if [ -e "$ipset_list" ]; then
+    exit 0
+fi
+
+counts=()
+sizes=()
+references=()
+types=()
+
+for ipset_name in $ipset_list; do
+    ipset_info=$(/usr/sbin/ipset list "$ipset_name")
+
+    entry_count=$(echo "$ipset_info" | grep -oE 'entries:[[:space:]]*[0-9]+' | awk '{print $2}')
+    entry_size=$(echo "$ipset_info" | grep -oE 'memory:[[:space:]]*[0-9]+' | awk '{print $2}')
+    entry_references=$(echo "$ipset_info" | grep -oE 'References:[[:space:]]*[0-9]+' | awk '{print $2}')
+    entry_type=$(echo "$ipset_info" | grep -oE 'Type:[[:space:]]*[[:print:]]+' | awk '{print $2}')
+
+    counts+=("ipset_entry_total{name=\"$ipset_name\"} $entry_count")
+    sizes+=("ipset_size_bytes{name=\"$ipset_name\"} $entry_size")
+    references+=("ipset_references_total{name=\"$ipset_name\"} $entry_references")
+    types+=("ipset_type{name=\"$ipset_name\", type=\"$entry_type\"} 1")
+done
+
+# Final output for collector
+
+if [ ${#counts[@]} -gt 0 ]; then
+    echo "# HELP ipset_entry_total Number of entries inside the ipset"
+    echo "# TYPE ipset_entry_total gauge"
+
+    for line in "${counts[@]}"; do
+        echo "$line"
+    done
+fi
+
+if [ ${#sizes[@]} -gt 0 ]; then
+    echo "# HELP ipset_size_bytes In-memory size of the ipset"
+    echo "# TYPE ipset_size_bytes gauge"
+
+    for line in "${sizes[@]}"; do
+        echo "$line"
+    done
+fi
+
+if [ ${#references[@]} -gt 0 ]; then
+    echo "# HELP ipset_references_total Number of references of this ipset"
+    echo "# TYPE ipset_references_total gauge"
+
+    for line in "${references[@]}"; do
+        echo "$line"
+    done
+fi
+
+if [ ${#types[@]} -gt 0 ]; then
+    echo "# HELP ipset_type Type information about this ipset"
+    echo "# TYPE ipset_type gauge"
+
+    for line in "${types[@]}"; do
+        echo "$line"
+    done
+fi
