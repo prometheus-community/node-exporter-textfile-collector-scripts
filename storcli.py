@@ -18,14 +18,13 @@ Formatting done with YAPF:
 $ yapf -i --style '{COLUMN_LIMIT: 99}' storcli.py
 """
 
-from __future__ import print_function
-from datetime import datetime
 import argparse
 import collections
 import json
 import os
 import shlex
 import subprocess
+from datetime import datetime
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
     Prometheus metrics."""
