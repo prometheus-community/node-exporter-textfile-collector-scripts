@@ -1,11 +1,13 @@
-# Text collector example scripts
+# Textfile Collector Example Scripts
 
-These scripts are examples to be used with the Node Exporter Textfile
-Collector.
+These scripts are examples to be used with the Node Exporter textfile
+collector.
 
 To use these scripts, we recommend using a `sponge` to atomically write the output.
 
-   <collector_script> | sponge <output_file>
+```
+<collector_script> | sponge <output_file>
+```
 
 Sponge comes from [moreutils](https://joeyh.name/code/moreutils/)
 * [brew install moreutils](http://brewformulas.org/Moreutil)
