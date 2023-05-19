@@ -140,8 +140,7 @@ def handle_megaraid_controller(response):
             vd_position = virtual_drive.get('DG/VD')
             drive_group, volume_group = -1, -1
             if vd_position:
-                drive_group = vd_position.split('/')[0]
-                volume_group = vd_position.split('/')[1]
+                drive_group, volume_group = vd_position.split('/')[:2]
             vd_baselabel = 'controller="{0}",DG="{1}",VG="{2}"'.format(controller_index,
                                                                        drive_group,
                                                                        volume_group)
@@ -167,8 +166,7 @@ def get_basic_controller_info(response):
 
 
 def create_metrics_of_physical_drive(physical_drive, detailed_info_array, controller_index):
-    enclosure = physical_drive.get('EID:Slt').split(':')[0]
-    slot = physical_drive.get('EID:Slt').split(':')[1]
+    enclosure, slot = physical_drive.get('EID:Slt').split(':')[:2]
 
     pd_baselabel = 'controller="{0}",enclosure="{1}",slot="{2}"'.format(controller_index, enclosure,
                                                                         slot)
@@ -181,10 +179,10 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
             str(physical_drive.get('DG')).strip(),
             str(physical_drive.get('State')).strip())
 
-    drive_identifier = 'Drive /c' + str(controller_index) + '/e' + str(enclosure) + '/s' + str(
-        slot)
     if enclosure == ' ':
-        drive_identifier = 'Drive /c' + str(controller_index) + '/s' + str(slot)
+        drive_identifier = 'Drive /c{0}/s{1}'.format(controller_index, slot)
+    else:
+        drive_identifier = 'Drive /c{0}/e{1}/s{2}'.format(controller_index, enclosure, slot)
     try:
         info = detailed_info_array[drive_identifier + ' - Detailed Information']
         state = info[drive_identifier + ' State']
