@@ -239,7 +239,9 @@ def get_storcli_json(storcli_args):
     # Check if storcli is installed and executable
     if not (os.path.isfile(storcli_path) and os.access(storcli_path, os.X_OK)):
         SystemExit(1)
-    storcli_cmd = shlex.split(storcli_path + ' ' + storcli_args + ' nolog')
+    storcli_cmd = [storcli_path]
+    storcli_cmd.extend(shlex.split(storcli_args))
+    storcli_cmd.append('nolog')
     proc = subprocess.Popen(
         storcli_cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output_json = proc.communicate()[0]
