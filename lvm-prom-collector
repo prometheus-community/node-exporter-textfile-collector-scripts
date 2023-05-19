@@ -105,7 +105,6 @@ if [ "$snapshots" = true ] ; then
 fi
 
 if [ "$thin_pools" = true ] ; then
-
   lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent,metadata_percent 2>/dev/null)
 
   echo "# HELP node_lvm_thin_pools_allocated percentage of allocated thin pool data"
