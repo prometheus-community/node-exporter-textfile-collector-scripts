@@ -1,0 +1,319 @@
+{
+"Controllers":[
+{
+	"Command Status" : {
+		"CLI Version" : "007.1616.0000.0000 Dec 24, 2020",
+		"Operating system" : "Linux 5.10.0-23-amd64",
+		"Controller" : 0,
+		"Status" : "Success",
+		"Description" : "Show Drive Information Succeeded."
+	},
+	"Response Data" : {
+		"Drive /c0/e252/s0" : [
+			{
+				"EID:Slt" : "252:0",
+				"DID" : 2,
+				"State" : "Onln",
+				"DG" : 0,
+				"Size" : "893.750 GB",
+				"Intf" : "SATA",
+				"Med" : "SSD",
+				"SED" : "N",
+				"PI" : "N",
+				"SeSz" : "512B",
+				"Model" : "Micron_5200_MTFDDAK960TDC",
+				"Sp" : "U",
+				"Type" : "-"
+			}
+		],
+		"Drive /c0/e252/s0 - Detailed Information" : {
+			"Drive /c0/e252/s0 State" : {
+				"Shield Counter" : 0,
+				"Media Error Count" : 0,
+				"Other Error Count" : 0,
+				"Drive Temperature" : " 21C (69.80 F)",
+				"Predictive Failure Count" : 0,
+				"S.M.A.R.T alert flagged by drive" : "No"
+			},
+			"Drive /c0/e252/s0 Device attributes" : {
+				"SN" : "20032656D641",
+				"Manufacturer Id" : "ATA     ",
+				"Model Number" : "Micron_5200_MTFDDAK960TDC",
+				"NAND Vendor" : "NA",
+				"WWN" : "500A07512656D641",
+				"Firmware Revision" : " D1MU004",
+				"Raw size" : "894.252 GB [0x6fc81ab0 Sectors]",
+				"Coerced size" : "893.750 GB [0x6fb80000 Sectors]",
+				"Non Coerced size" : "893.752 GB [0x6fb81ab0 Sectors]",
+				"Device Speed" : "6.0Gb/s",
+				"Link Speed" : "6.0Gb/s",
+				"NCQ setting" : "Enabled",
+				"Write Cache" : "N/A",
+				"Logical Sector Size" : "512B",
+				"Physical Sector Size" : "4 KB",
+				"Connector Name" : "Port 0 - 3 x1"
+			},
+			"Drive /c0/e252/s0 Policies/Settings" : {
+				"Drive position" : "DriveGroup:0, Span:0, Row:0",
+				"Enclosure position" : "1",
+				"Connected Port Number" : "0(path0) ",
+				"Sequence Number" : 2,
+				"Commissioned Spare" : "No",
+				"Emergency Spare" : "No",
+				"Last Predictive Failure Event Sequence Number" : 0,
+				"Successful diagnostics completion on" : "N/A",
+				"FDE Type" : "None",
+				"SED Capable" : "No",
+				"SED Enabled" : "No",
+				"Secured" : "No",
+				"Cryptographic Erase Capable" : "Yes",
+				"Sanitize Support" : "Not supported",
+				"Locked" : "No",
+				"Needs EKM Attention" : "No",
+				"PI Eligible" : "No",
+				"Certified" : "No",
+				"Wide Port Capable" : "No",
+				"Multipath" : "No",
+				"Port Information" : [
+					{
+						"Port" : 0,
+						"Status" : "Active",
+						"Linkspeed" : "6.0Gb/s",
+						"SAS address" : "0x4433221102000000"
+					}
+				]
+			},
+			"Inquiry Data" : "40 04 ff 3f 37 c8 10 00 00 00 00 00 3f 00 00 00 00 00 00 00 20 20 20 20 20 20 20 20 30 32 33 30 36 32 36 35 36 44 31 34 00 00 00 00 00 00 44 20 4d 31 30 55 34 30 69 4d 72 63 6e 6f 35 5f 30 32 5f 30 54 4d 44 46 41 44 39 4b 30 36 44 54 20 43 20 20 20 20 20 20 20 20 20 20 20 20 20 20 10 80 00 40 00 2f 01 40 00 00 00 00 06 00 ff 3f 10 00 3f 00 10 fc fb 00 10 fd ff ff ff 0f 00 00 07 00 "
+		},
+		"Drive /c0/e252/s1" : [
+			{
+				"EID:Slt" : "252:1",
+				"DID" : 3,
+				"State" : "Onln",
+				"DG" : 0,
+				"Size" : "893.750 GB",
+				"Intf" : "SATA",
+				"Med" : "SSD",
+				"SED" : "N",
+				"PI" : "N",
+				"SeSz" : "512B",
+				"Model" : "Micron_5200_MTFDDAK960TDC",
+				"Sp" : "U",
+				"Type" : "-"
+			}
+		],
+		"Drive /c0/e252/s1 - Detailed Information" : {
+			"Drive /c0/e252/s1 State" : {
+				"Shield Counter" : 0,
+				"Media Error Count" : 0,
+				"Other Error Count" : 0,
+				"Drive Temperature" : " 21C (69.80 F)",
+				"Predictive Failure Count" : 0,
+				"S.M.A.R.T alert flagged by drive" : "No"
+			},
+			"Drive /c0/e252/s1 Device attributes" : {
+				"SN" : "20032656D63C",
+				"Manufacturer Id" : "ATA     ",
+				"Model Number" : "Micron_5200_MTFDDAK960TDC",
+				"NAND Vendor" : "NA",
+				"WWN" : "500A07512656D63C",
+				"Firmware Revision" : " D1MU004",
+				"Raw size" : "894.252 GB [0x6fc81ab0 Sectors]",
+				"Coerced size" : "893.750 GB [0x6fb80000 Sectors]",
+				"Non Coerced size" : "893.752 GB [0x6fb81ab0 Sectors]",
+				"Device Speed" : "6.0Gb/s",
+				"Link Speed" : "6.0Gb/s",
+				"NCQ setting" : "Enabled",
+				"Write Cache" : "N/A",
+				"Logical Sector Size" : "512B",
+				"Physical Sector Size" : "4 KB",
+				"Connector Name" : "Port 0 - 3 x1"
+			},
+			"Drive /c0/e252/s1 Policies/Settings" : {
+				"Drive position" : "DriveGroup:0, Span:0, Row:1",
+				"Enclosure position" : "0",
+				"Connected Port Number" : "1(path0) ",
+				"Sequence Number" : 2,
+				"Commissioned Spare" : "No",
+				"Emergency Spare" : "No",
+				"Last Predictive Failure Event Sequence Number" : 0,
+				"Successful diagnostics completion on" : "N/A",
+				"FDE Type" : "None",
+				"SED Capable" : "No",
+				"SED Enabled" : "No",
+				"Secured" : "No",
+				"Cryptographic Erase Capable" : "Yes",
+				"Sanitize Support" : "Not supported",
+				"Locked" : "No",
+				"Needs EKM Attention" : "No",
+				"PI Eligible" : "No",
+				"Certified" : "No",
+				"Wide Port Capable" : "No",
+				"Multipath" : "No",
+				"Port Information" : [
+					{
+						"Port" : 0,
+						"Status" : "Active",
+						"Linkspeed" : "6.0Gb/s",
+						"SAS address" : "0x4433221103000000"
+					}
+				]
+			},
+			"Inquiry Data" : "40 04 ff 3f 37 c8 10 00 00 00 00 00 3f 00 00 00 00 00 00 00 20 20 20 20 20 20 20 20 30 32 33 30 36 32 36 35 36 44 43 33 00 00 00 00 00 00 44 20 4d 31 30 55 34 30 69 4d 72 63 6e 6f 35 5f 30 32 5f 30 54 4d 44 46 41 44 39 4b 30 36 44 54 20 43 20 20 20 20 20 20 20 20 20 20 20 20 20 20 10 80 00 40 00 2f 01 40 00 00 00 00 06 00 ff 3f 10 00 3f 00 10 fc fb 00 10 fd ff ff ff 0f 00 00 07 00 "
+		},
+		"Drive /c0/e252/s4" : [
+			{
+				"EID:Slt" : "252:4",
+				"DID" : 7,
+				"State" : "Onln",
+				"DG" : 0,
+				"Size" : "893.750 GB",
+				"Intf" : "SATA",
+				"Med" : "SSD",
+				"SED" : "N",
+				"PI" : "N",
+				"SeSz" : "512B",
+				"Model" : "Micron_5200_MTFDDAK960TDC",
+				"Sp" : "U",
+				"Type" : "-"
+			}
+		],
+		"Drive /c0/e252/s4 - Detailed Information" : {
+			"Drive /c0/e252/s4 State" : {
+				"Shield Counter" : 0,
+				"Media Error Count" : 0,
+				"Other Error Count" : 0,
+				"Drive Temperature" : " 21C (69.80 F)",
+				"Predictive Failure Count" : 0,
+				"S.M.A.R.T alert flagged by drive" : "No"
+			},
+			"Drive /c0/e252/s4 Device attributes" : {
+				"SN" : "20032656D649",
+				"Manufacturer Id" : "ATA     ",
+				"Model Number" : "Micron_5200_MTFDDAK960TDC",
+				"NAND Vendor" : "NA",
+				"WWN" : "500A07512656D649",
+				"Firmware Revision" : " D1MU004",
+				"Raw size" : "894.252 GB [0x6fc81ab0 Sectors]",
+				"Coerced size" : "893.750 GB [0x6fb80000 Sectors]",
+				"Non Coerced size" : "893.752 GB [0x6fb81ab0 Sectors]",
+				"Device Speed" : "6.0Gb/s",
+				"Link Speed" : "6.0Gb/s",
+				"NCQ setting" : "Enabled",
+				"Write Cache" : "N/A",
+				"Logical Sector Size" : "512B",
+				"Physical Sector Size" : "4 KB",
+				"Connector Name" : "Port 4 - 7 x1"
+			},
+			"Drive /c0/e252/s4 Policies/Settings" : {
+				"Drive position" : "DriveGroup:0, Span:0, Row:3",
+				"Enclosure position" : "0",
+				"Connected Port Number" : "2(path0) ",
+				"Sequence Number" : 2,
+				"Commissioned Spare" : "No",
+				"Emergency Spare" : "No",
+				"Last Predictive Failure Event Sequence Number" : 0,
+				"Successful diagnostics completion on" : "N/A",
+				"FDE Type" : "None",
+				"SED Capable" : "No",
+				"SED Enabled" : "No",
+				"Secured" : "No",
+				"Cryptographic Erase Capable" : "Yes",
+				"Sanitize Support" : "Not supported",
+				"Locked" : "No",
+				"Needs EKM Attention" : "No",
+				"PI Eligible" : "No",
+				"Certified" : "No",
+				"Wide Port Capable" : "No",
+				"Multipath" : "No",
+				"Port Information" : [
+					{
+						"Port" : 0,
+						"Status" : "Active",
+						"Linkspeed" : "6.0Gb/s",
+						"SAS address" : "0x4433221106000000"
+					}
+				]
+			},
+			"Inquiry Data" : "40 04 ff 3f 37 c8 10 00 00 00 00 00 3f 00 00 00 00 00 00 00 20 20 20 20 20 20 20 20 30 32 33 30 36 32 36 35 36 44 39 34 00 00 00 00 00 00 44 20 4d 31 30 55 34 30 69 4d 72 63 6e 6f 35 5f 30 32 5f 30 54 4d 44 46 41 44 39 4b 30 36 44 54 20 43 20 20 20 20 20 20 20 20 20 20 20 20 20 20 10 80 00 40 00 2f 01 40 00 00 00 00 06 00 ff 3f 10 00 3f 00 10 fc fb 00 10 fd ff ff ff 0f 00 00 07 00 "
+		},
+		"Drive /c0/e252/s5" : [
+			{
+				"EID:Slt" : "252:5",
+				"DID" : 6,
+				"State" : "Onln",
+				"DG" : 0,
+				"Size" : "893.750 GB",
+				"Intf" : "SATA",
+				"Med" : "SSD",
+				"SED" : "N",
+				"PI" : "N",
+				"SeSz" : "512B",
+				"Model" : "Micron_5200_MTFDDAK960TDC",
+				"Sp" : "U",
+				"Type" : "-"
+			}
+		],
+		"Drive /c0/e252/s5 - Detailed Information" : {
+			"Drive /c0/e252/s5 State" : {
+				"Shield Counter" : 0,
+				"Media Error Count" : 0,
+				"Other Error Count" : 0,
+				"Drive Temperature" : " 21C (69.80 F)",
+				"Predictive Failure Count" : 0,
+				"S.M.A.R.T alert flagged by drive" : "No"
+			},
+			"Drive /c0/e252/s5 Device attributes" : {
+				"SN" : "20032656D5D1",
+				"Manufacturer Id" : "ATA     ",
+				"Model Number" : "Micron_5200_MTFDDAK960TDC",
+				"NAND Vendor" : "NA",
+				"WWN" : "500A07512656D5D1",
+				"Firmware Revision" : " D1MU004",
+				"Raw size" : "894.252 GB [0x6fc81ab0 Sectors]",
+				"Coerced size" : "893.750 GB [0x6fb80000 Sectors]",
+				"Non Coerced size" : "893.752 GB [0x6fb81ab0 Sectors]",
+				"Device Speed" : "6.0Gb/s",
+				"Link Speed" : "6.0Gb/s",
+				"NCQ setting" : "Enabled",
+				"Write Cache" : "N/A",
+				"Logical Sector Size" : "512B",
+				"Physical Sector Size" : "4 KB",
+				"Connector Name" : "Port 4 - 7 x1"
+			},
+			"Drive /c0/e252/s5 Policies/Settings" : {
+				"Drive position" : "DriveGroup:0, Span:0, Row:2",
+				"Enclosure position" : "0",
+				"Connected Port Number" : "3(path0) ",
+				"Sequence Number" : 2,
+				"Commissioned Spare" : "No",
+				"Emergency Spare" : "No",
+				"Last Predictive Failure Event Sequence Number" : 0,
+				"Successful diagnostics completion on" : "N/A",
+				"FDE Type" : "None",
+				"SED Capable" : "No",
+				"SED Enabled" : "No",
+				"Secured" : "No",
+				"Cryptographic Erase Capable" : "Yes",
+				"Sanitize Support" : "Not supported",
+				"Locked" : "No",
+				"Needs EKM Attention" : "No",
+				"PI Eligible" : "No",
+				"Certified" : "No",
+				"Wide Port Capable" : "No",
+				"Multipath" : "No",
+				"Port Information" : [
+					{
+						"Port" : 0,
+						"Status" : "Active",
+						"Linkspeed" : "6.0Gb/s",
+						"SAS address" : "0x4433221107000000"
+					}
+				]
+			},
+			"Inquiry Data" : "40 04 ff 3f 37 c8 10 00 00 00 00 00 3f 00 00 00 00 00 00 00 20 20 20 20 20 20 20 20 30 32 33 30 36 32 36 35 35 44 31 44 00 00 00 00 00 00 44 20 4d 31 30 55 34 30 69 4d 72 63 6e 6f 35 5f 30 32 5f 30 54 4d 44 46 41 44 39 4b 30 36 44 54 20 43 20 20 20 20 20 20 20 20 20 20 20 20 20 20 10 80 00 40 00 2f 01 40 00 00 00 00 06 00 ff 3f 10 00 3f 00 10 fc fb 00 10 fd ff ff ff 0f 00 00 07 00 "
+		}
+	}
+}
+]
+}

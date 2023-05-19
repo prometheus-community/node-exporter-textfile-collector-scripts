@@ -4,9 +4,10 @@ Script to parse StorCLI's JSON output and expose
 MegaRAID health as Prometheus metrics.
 
 Tested against StorCLI 'Ver 1.14.12 Nov 25, 2014'.
+                   and '007.1108.0000.0000 July 17, 2019'
 
 StorCLI reference manual:
-http://docs.avagotech.com/docs/12352476
+https://docs.broadcom.com/docs/12352476
 
 Advanced Software Options (ASO) not exposed as metrics currently.
 
@@ -17,18 +18,17 @@ Formatting done with YAPF:
 $ yapf -i --style '{COLUMN_LIMIT: 99}' storcli.py
 """
 
-from __future__ import print_function
-from datetime import datetime
 import argparse
 import collections
 import json
 import os
 import shlex
 import subprocess
+from datetime import datetime
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
     Prometheus metrics."""
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 storcli_path = ''
 metric_prefix = 'megaraid_'
@@ -70,12 +70,11 @@ def handle_common_controller(response):
     )
     add_metric('controller_info', controller_info_label, 1)
 
-    # Split up string to not trigger CodeSpell issues
-    if 'ROC temperature(Degree Celc' + 'ius)' in response['HwCfg'].keys():
-        response['HwCfg']['ROC temperature(Degree Celsius)'] = response['HwCfg'].pop(
-            'ROC temperature(Degree Celc' + 'ius)'
-        )
-    add_metric('temperature', baselabel, int(response['HwCfg']['ROC temperature(Degree Celsius)']))
+    # Older boards don't have this sensor at all ("Temperature Sensor for ROC" : "Absent")
+    for key in ['ROC temperature(Degree Celcius)', 'ROC temperature(Degree Celsius)']:
+        if key in response['HwCfg']:
+            add_metric('temperature', baselabel, int(response['HwCfg'][key]))
+            break
 
 
 def handle_sas_controller(response):
@@ -100,9 +99,10 @@ def handle_sas_controller(response):
 def handle_megaraid_controller(response):
     (controller_index, baselabel) = get_basic_controller_info(response)
 
-    # BBU Status Optimal value is 0 for cachevault and 32 for BBU
-    add_metric('battery_backup_healthy', baselabel,
-               int(response['Status']['BBU Status'] in [0, 32]))
+    if response['Status']['BBU Status'] != 'NA':
+        # BBU Status Optimal value is 0 for normal, 8 for charging
+        add_metric('battery_backup_healthy', baselabel,
+                   int(response['Status']['BBU Status'] in [0, 8]))
     add_metric('degraded', baselabel, int(response['Status']['Controller Status'] == 'Degraded'))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
@@ -110,10 +110,17 @@ def handle_megaraid_controller(response):
     add_metric('scheduled_patrol_read', baselabel,
                int('hrs' in response['Scheduled Tasks']['Patrol Read Reoccurrence']))
     for cvidx, cvinfo in enumerate(response.get('Cachevault_Info', [])):
-        add_metric('cv_temperature',
-                   baselabel + ',cvidx="' + str(cvidx) + '"',
-                   int(cvinfo['Temp'].replace('C', ''))
-                   )
+        if 'Temp' in cvinfo:
+            add_metric('cv_temperature',
+                       baselabel + ',cvidx="' + str(cvidx) + '"',
+                       int(cvinfo['Temp'].replace('C', ''))
+                       )
+    for bbuidx, bbuinfo in enumerate(response.get('BBU_Info', [])):
+        if 'Temp' in bbuinfo:
+            add_metric('bbu_temperature',
+                       baselabel + ',bbuidx="' + str(bbuidx) + '"',
+                       int(bbuinfo['Temp'].replace('C', ''))
+                       )
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
@@ -125,7 +132,7 @@ def handle_megaraid_controller(response):
         add_metric('time_difference', baselabel, time_difference_seconds)
 
     # Make sure it doesn't crash if it's a JBOD setup
-    if 'Drive Groups' in response.keys():
+    if 'Drive Groups' in response:
         add_metric('drive_groups', baselabel, response['Drive Groups'])
         add_metric('virtual_drives', baselabel, response['Virtual Drives'])
 
@@ -231,7 +238,9 @@ def get_storcli_json(storcli_args):
     # Check if storcli is installed and executable
     if not (os.path.isfile(storcli_path) and os.access(storcli_path, os.X_OK)):
         SystemExit(1)
-    storcli_cmd = shlex.split(storcli_path + ' ' + storcli_args + ' nolog')
+    storcli_cmd = [storcli_path]
+    storcli_cmd.extend(shlex.split(storcli_args))
+    storcli_cmd.append('nolog')
     proc = subprocess.Popen(
         storcli_cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output_json = proc.communicate()[0]
