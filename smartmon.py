@@ -325,8 +325,67 @@ def collect_ata_error_count(device):
     yield Metric('device_errors', device.base_labels, error_count)
 
 
+def collect_ata_devstats(device, desc_metrics):
+    """Collect values and descriptions of the ATA Device Statistics log pages.
+
+    Args:
+        device: (Device) Device in question.
+        desc_metrics: Dict for metrics describing indididual page/offset
+            values. These are standardized and don't need to be emitted more
+            than once.
+
+    Yields:
+        (Metric) Metrics describing device statistics.
+    """
+    lines = smart_ctl('-l', 'devstat', *device.smartctl_select()).split('\n')
+
+    # Examples:
+    # 0x01  0x020  6       223707564  ---  Number of Write Commands
+    # 0x07  0x008  1              13  N--  Percentage Used Endurance Indicator
+    devstats_re = re.compile(r'^(0x[0-9]+)\s+(0x[0-9]+)\s+[0-9]+\s+'
+                             r'(-?[0-9]+)\s+([-a-z]+)\s+(.+)\s*$', re.I)
+
+    started = False
+    for line in lines:
+        if not started:
+            started = line.startswith("Page ")
+            continue
+
+        m = devstats_re.match(line)
+        if not m:
+            continue
+
+        (page, offset, value, flags, desc) = m.groups()
+
+        page = int(page, 16)
+        offset = int(offset, 16)
+        labels = {
+            'page': str(page),
+            'offset': str(offset),
+        }
+
+        yield Metric('devstat_value', {
+            **device.base_labels,
+            **labels
+        }, value)
+        yield Metric('devstat_flags', {
+            **device.base_labels,
+            **labels,
+            'flags': flags.replace('-', ''),
+        }, 1)
+
+        if (page, offset) not in desc_metrics:
+            desc_metrics[(page, offset)] = Metric('devstat_desc', {
+                **labels,
+                # Normalize whitespace
+                'desc': re.sub(r'\s+', ' ', desc).lower(),
+            }, 1)
+
+
 def collect_disks_smart_metrics(wakeup_disks):
     now = int(datetime.datetime.utcnow().timestamp())
+
+    devstat_desc_metrics = {}
 
     for device in find_devices():
         yield Metric('smartctl_run', device.base_labels, now)
@@ -361,6 +420,10 @@ def collect_disks_smart_metrics(wakeup_disks):
             yield from collect_ata_metrics(device)
 
             yield from collect_ata_error_count(device)
+
+            yield from collect_ata_devstats(device, devstat_desc_metrics)
+
+    yield from iter(devstat_desc_metrics.values())
 
 
 def main():
