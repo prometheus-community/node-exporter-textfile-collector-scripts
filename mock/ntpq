@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# ntpq mock script for testing ntpd_metrics.py textfile collector
+
+fixtures_dir=$(dirname $0)/fixtures
+
+case $@ in
+    "-np")
+        cat ${fixtures_dir}/ntpq_-np
+        ;;
+    "-c rv 0 offset,sys_jitter,rootdisp,rootdelay")
+        cat ${fixtures_dir}/ntpq_-c_rv_0_offset,sys_jitter,rootdisp,rootdelay
+        ;;
+esac

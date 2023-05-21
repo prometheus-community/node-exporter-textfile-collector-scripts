@@ -6,6 +6,7 @@
 import re
 import subprocess
 import sys
+from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 # NTP peers status, with no DNS lookups.
 ntpq_cmd = ['ntpq', '-np']
@@ -59,17 +60,6 @@ def get_output(command):
     return output.decode()
 
 
-# Print metrics in Prometheus format.
-def print_prometheus(metric, values):
-    print("# HELP ntpd_%s NTPd metric for %s" % (metric, metric))
-    print("# TYPE ntpd_%s gauge" % (metric))
-    for labels in values:
-        if labels is None:
-            print("ntpd_%s %f" % (metric, values[labels]))
-        else:
-            print("ntpd_%s{%s} %f" % (metric, labels, values[labels]))
-
-
 # Parse raw ntpq lines.
 def parse_line(line):
     if re.match(r'\s+remote\s+refid', line):
@@ -86,10 +76,19 @@ def parse_line(line):
 # Main function
 def main(argv):
     ntpq = get_output(ntpq_cmd)
-    peer_status_metrics = {}
-    delay_metrics = {}
-    offset_metrics = {}
-    jitter_metrics = {}
+
+    namespace = 'ntpd'
+    registry = CollectorRegistry()
+    peer_status = Gauge('peer_status', 'NTPd metric for peer_status',
+                        ['remote', 'reference', 'stratum', 'type'],
+                        namespace=namespace, registry=registry)
+    delay_ms = Gauge('delay_milliseconds', 'NTPd metric for delay_milliseconds',
+                     ['remote', 'reference'], namespace=namespace, registry=registry)
+    offset_ms = Gauge('offset_milliseconds', 'NTPd metric for offset_milliseconds',
+                      ['remote', 'reference'], namespace=namespace, registry=registry)
+    jitter_ms = Gauge('jitter_milliseconds', 'NTPd metric for jitter_milliseconds',
+                      ['remote', 'reference'], namespace=namespace, registry=registry)
+
     for line in ntpq.split('\n'):
         metric_match = parse_line(line)
         if metric_match is None:
@@ -98,23 +97,22 @@ def main(argv):
         refid = metric_match.group('refid')
         stratum = metric_match.group('stratum')
         remote_type = remote_types[metric_match.group('type')]
-        common_labels = "remote=\"%s\",reference=\"%s\"" % (remote, refid)
-        peer_labels = "%s,stratum=\"%s\",type=\"%s\"" % (common_labels, stratum, remote_type)
 
-        peer_status_metrics[peer_labels] = float(status_types[metric_match.group('status')])
-        delay_metrics[common_labels] = float(metric_match.group('delay'))
-        offset_metrics[common_labels] = float(metric_match.group('offset'))
-        jitter_metrics[common_labels] = float(metric_match.group('jitter'))
-
-    print_prometheus('peer_status', peer_status_metrics)
-    print_prometheus('delay_milliseconds', delay_metrics)
-    print_prometheus('offset_milliseconds', offset_metrics)
-    print_prometheus('jitter_milliseconds', jitter_metrics)
+        peer_status.labels(remote, refid, stratum, remote_type).set(
+            status_types[metric_match.group('status')]
+        )
+        delay_ms.labels(remote, refid).set(metric_match.group('delay'))
+        offset_ms.labels(remote, refid).set(metric_match.group('offset'))
+        jitter_ms.labels(remote, refid).set(metric_match.group('jitter'))
 
     ntpq_rv = get_output(ntpq_rv_cmd)
     for metric in ntpq_rv.split(','):
         metric_name, metric_value = metric.strip().split('=')
-        print_prometheus(metric_name, {None: float(metric_value)})
+        g = Gauge(metric_name, 'NTPd metric for {}'.format(metric_name), [],
+                  namespace=namespace, registry=registry)
+        g.set(metric_value)
+
+    print(generate_latest(registry).decode(), end='')
 
 
 # Go go go!
