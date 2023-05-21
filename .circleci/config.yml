@@ -1,28 +1,18 @@
 ---
+# node-exporter-textfile-collector-scripts has moved to GitHub Actions.
+# Circle CI is not disabled repository-wise so that previous pull requests continue working.
+# This file does not generate any CircleCI workflow.
+
 version: 2.1
 
-orbs:
-  shellcheck: circleci/shellcheck@1.3.15
-
-executors:
-  shellcheck:
-    docker:
-    - image: koalaman/shellcheck
-  python:
-    docker:
-      - image: cimg/python:3.9
-
 jobs:
-  flake8_lint:
-    executor: python
+  noop-job:
+    docker:
+      - image: cimg/base:stable
     steps:
-      - checkout
-      - run: pip install flake8
-      - run: flake8
+      - run: echo "No-op job; config migrated to GitHub Actions."
 
 workflows:
-  version: 2
-  scripts:
+  noop-workflow:
     jobs:
-    - shellcheck/check
-    - flake8_lint
+      - noop-job
