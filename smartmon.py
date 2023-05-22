@@ -2,7 +2,6 @@
 import argparse
 import collections
 import csv
-import datetime
 import decimal
 import re
 import shlex
@@ -326,11 +325,7 @@ def collect_ata_error_count(device):
 
 
 def collect_disks_smart_metrics(wakeup_disks):
-    now = int(datetime.datetime.utcnow().timestamp())
-
     for device in find_devices():
-        yield Metric('smartctl_run', device.base_labels, now)
-
         is_active = device_is_active(device)
 
         yield Metric('device_active', device.base_labels, is_active)
