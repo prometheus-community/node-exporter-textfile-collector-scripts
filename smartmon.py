@@ -2,12 +2,11 @@
 import argparse
 import collections
 import csv
-import datetime
-import decimal
 import re
 import shlex
 import subprocess
 import sys
+from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 device_info_re = re.compile(r'^(?P<k>[^:]+?)(?:(?:\sis|):)\s*(?P<v>.*)$')
 
@@ -27,7 +26,7 @@ device_info_map = {
     'Firmware Version': 'firmware_version',
 }
 
-smart_attributes_whitelist = {
+smart_attributes_whitelist = (
     'airflow_temperature_cel',
     'command_timeout',
     'current_pending_sector',
@@ -66,9 +65,110 @@ smart_attributes_whitelist = {
     'workld_host_reads_perc',
     'workld_media_wear_indic',
     'workload_minutes',
-}
+)
 
-Metric = collections.namedtuple('Metric', 'name labels value')
+registry = CollectorRegistry()
+namespace = "smartmon"
+
+metrics = {
+    "smartctl_version": Gauge(
+        "smartctl_version",
+        "SMART metric smartctl_version",
+        ["version"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "smartctl_run": Gauge(
+        "smartctl_run",
+        "SMART metric smartctl_run",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_active": Gauge(
+        "device_active",
+        "SMART metric device_active",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_info": Gauge(
+        "device_info",
+        "SMART metric device_info",
+        [
+            "device",
+            "disk",
+            "vendor",
+            "product",
+            "revision",
+            "lun_id",
+            "model_family",
+            "device_model",
+            "serial_number",
+            "firmware_version",
+        ],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_smart_available": Gauge(
+        "device_smart_available",
+        "SMART metric device_smart_available",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_smart_enabled": Gauge(
+        "device_smart_enabled",
+        "SMART metric device_smart_enabled",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_smart_healthy": Gauge(
+        "device_smart_healthy",
+        "SMART metric device_smart_healthy",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+
+    # SMART attributes - ATA disks only
+    "attr_value": Gauge(
+        "attr_value",
+        "SMART metric attr_value",
+        ["device", "disk", "name"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "attr_worst": Gauge(
+        "attr_worst",
+        "SMART metric attr_worst",
+        ["device", "disk", "name"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "attr_threshold": Gauge(
+        "attr_threshold",
+        "SMART metric attr_threshold",
+        ["device", "disk", "name"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "attr_raw_value": Gauge(
+        "attr_raw_value",
+        "SMART metric attr_raw_value",
+        ["device", "disk", "name"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "device_errors": Gauge(
+        "device_errors",
+        "SMART metric device_errors",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+}
 
 SmartAttribute = collections.namedtuple('SmartAttribute', [
     'id', 'name', 'flag', 'value', 'worst', 'threshold', 'type', 'updated',
@@ -89,31 +189,6 @@ class Device(collections.namedtuple('DeviceBase', 'path opts')):
 
     def smartctl_select(self):
         return ['--device', self.type, self.path]
-
-
-def metric_key(metric, prefix=''):
-    return '{prefix}{metric.name}'.format(prefix=prefix, metric=metric)
-
-
-def metric_format(metric, prefix=''):
-    key = metric_key(metric, prefix)
-    labels = ','.join(
-        '{k}="{v}"'.format(k=k, v=v.replace('"', '\\"')) for k, v in metric.labels.items())
-    value = decimal.Decimal(metric.value)
-
-    return '{key}{{{labels}}} {value}'.format(
-        key=key, labels=labels, value=value)
-
-
-def metric_print_meta(metric, prefix=''):
-    key = metric_key(metric, prefix)
-    print('# HELP {key} SMART metric {metric.name}'.format(
-        key=key, metric=metric))
-    print('# TYPE {key} gauge'.format(key=key))
-
-
-def metric_print(metric, prefix=''):
-    print(metric_format(metric, prefix))
 
 
 def smart_ctl(*args, check=True):
@@ -220,15 +295,20 @@ def collect_device_info(device):
 
     Args:
         device: (Device) Device in question.
-
-    Yields:
-        (Metric) metrics describing general device information.
     """
     values = dict(device_info(device))
-    yield Metric('device_info', {
-        **device.base_labels,
-        **{v: values[k] for k, v in device_info_map.items() if k in values}
-    }, True)
+    metrics["device_info"].labels(
+        device.base_labels["device"],
+        device.base_labels["disk"],
+        values.get("Vendor", ""),
+        values.get("Product", ""),
+        values.get("Revision", ""),
+        values.get("Logical Unit id", ""),
+        values.get("Model Family", ""),
+        values.get("Device Model", ""),
+        values.get("Serial Number", ""),
+        values.get("Firmware Version", ""),
+    ).set(1)
 
 
 def collect_device_health_self_assessment(device):
@@ -236,16 +316,13 @@ def collect_device_health_self_assessment(device):
 
     Args:
         device: (Device) Device in question.
-
-    Yields:
-        (Metric) Device health self assessment.
     """
     out = smart_ctl('--health', *device.smartctl_select(), check=False)
 
     self_assessment_passed = bool(self_test_re.search(out))
-
-    yield Metric(
-        'device_smart_healthy', device.base_labels, self_assessment_passed)
+    metrics["device_smart_healthy"].labels(
+        device.base_labels["device"], device.base_labels["disk"]
+    ).set(self_assessment_passed)
 
 
 def collect_ata_metrics(device):
@@ -293,15 +370,12 @@ def collect_ata_metrics(device):
             entry['threshold'] = '0'
 
         if entry['name'] in smart_attributes_whitelist and entry['name'] not in seen:
-            labels = {
-                'name': entry['name'],
-                **device.base_labels,
-            }
-
             for col in 'value', 'worst', 'threshold', 'raw_value':
-                yield Metric(
-                    'attr_{col}'.format(col=col),
-                    labels, entry[col])
+                metrics["attr_" + col].labels(
+                    device.base_labels["device"],
+                    device.base_labels["disk"],
+                    entry["name"],
+                ).set(entry[col])
 
             seen.add(entry['name'])
 
@@ -311,9 +385,6 @@ def collect_ata_error_count(device):
 
     Args:
         device: (Device) Device in question.
-
-    Yields:
-        (Metric) Device error count.
     """
     error_log = smart_ctl(
         '-l', 'xerror,1', *device.smartctl_select(), check=False)
@@ -321,46 +392,44 @@ def collect_ata_error_count(device):
     m = ata_error_count_re.search(error_log)
 
     error_count = m.group(1) if m is not None else 0
-
-    yield Metric('device_errors', device.base_labels, error_count)
+    metrics["device_errors"].labels(
+        device.base_labels["device"], device.base_labels["disk"]
+    ).set(error_count)
 
 
 def collect_disks_smart_metrics(wakeup_disks):
-    now = int(datetime.datetime.utcnow().timestamp())
-
     for device in find_devices():
-        yield Metric('smartctl_run', device.base_labels, now)
-
         is_active = device_is_active(device)
+        metrics["device_active"].labels(
+            device.base_labels["device"], device.base_labels["disk"],
+        ).set(is_active)
 
-        yield Metric('device_active', device.base_labels, is_active)
-
-        # Skip further metrics collection to prevent the disk from
-        # spinning up.
+        # Skip further metrics collection to prevent the disk from spinning up.
         if not is_active and not wakeup_disks:
             continue
 
-        yield from collect_device_info(device)
+        collect_device_info(device)
 
         smart_available, smart_enabled = device_smart_capabilities(device)
 
-        yield Metric(
-            'device_smart_available', device.base_labels, smart_available)
-        yield Metric(
-            'device_smart_enabled', device.base_labels, smart_enabled)
+        metrics["device_smart_available"].labels(
+            device.base_labels["device"], device.base_labels["disk"]
+        ).set(smart_available)
 
-        # Skip further metrics collection here if SMART is disabled
-        # on the device.  Further smartctl invocations would fail
-        # anyways.
+        metrics["device_smart_enabled"].labels(
+            device.base_labels["device"], device.base_labels["disk"]
+        ).set(smart_enabled)
+
+        # Skip further metrics collection here if SMART is disabled on the device. Further smartctl
+        # invocations would fail anyway.
         if not smart_available:
             continue
 
-        yield from collect_device_health_self_assessment(device)
+        collect_device_health_self_assessment(device)
 
         if device.type.startswith('sat'):
-            yield from collect_ata_metrics(device)
-
-            yield from collect_ata_error_count(device)
+            collect_ata_metrics(device)
+            collect_ata_error_count(device)
 
 
 def main():
@@ -368,23 +437,10 @@ def main():
     parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true')
     args = parser.parse_args(sys.argv[1:])
 
-    version_metric = Metric('smartctl_version', {
-        'version': smart_ctl_version()
-    }, True)
-    metric_print_meta(version_metric, 'smartmon_')
-    metric_print(version_metric, 'smartmon_')
+    metrics["smartctl_version"].labels(smart_ctl_version()).set(1)
 
-    metrics = list(collect_disks_smart_metrics(args.wakeup_disks))
-    metrics.sort(key=lambda i: i.name)
-
-    previous_name = None
-    for m in metrics:
-        if m.name != previous_name:
-            metric_print_meta(m, 'smartmon_')
-
-            previous_name = m.name
-
-        metric_print(m, 'smartmon_')
+    collect_disks_smart_metrics(args.wakeup_disks)
+    print(generate_latest(registry).decode(), end="")
 
 
 if __name__ == '__main__':
