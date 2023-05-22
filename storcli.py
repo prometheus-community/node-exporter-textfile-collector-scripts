@@ -24,7 +24,7 @@ import json
 import os
 import shlex
 import subprocess
-import sys, traceback
+import traceback
 from datetime import datetime
 
 DESCRIPTION = """Parses StorCLI's JSON output and exposes MegaRAID health as
@@ -103,15 +103,17 @@ def handle_megaraid_controller(response):
     # BBU Status Optimal value is 0 for cachevault and 32 for BBU
     add_metric('battery_backup_healthy', baselabel,
                int(response['Status']['BBU Status'] in [0, 32]))
-    add_metric('degraded', baselabel, int(response['Status']['Controller Status'] not in ['Failed', 'Optimal']))
+    add_metric('degraded', baselabel,
+               int(response['Status']['Controller Status'] not in ['Failed', 'Optimal']))
     add_metric('failed', baselabel, int(response['Status']['Controller Status'] == 'Failed'))
     add_metric('healthy', baselabel, int(response['Status']['Controller Status'] == 'Optimal'))
     add_metric('ports', baselabel, response['HwCfg']['Backend Port Count'])
     add_metric('scheduled_patrol_read', baselabel,
                int('hrs' in response['Scheduled Tasks']['Patrol Read Reoccurrence']))
     # Cachevault_Info key is not present!
-    #for cvidx, cvinfo in enumerate(response['Cachevault_Info']):
-    #    add_metric('cv_temperature', baselabel + ',cvidx="' + str(cvidx) + '"', int(cvinfo['Temp'].replace('C','')))
+    # for cvidx, cvinfo in enumerate(response['Cachevault_Info']):
+    #     add_metric('cv_temperature', baselabel + ',cvidx="' + str(cvidx) + '"',
+    #                int(cvinfo['Temp'].replace('C','')))
 
     time_difference_seconds = -1
     system_time = datetime.strptime(response['Basics'].get('Current System Date/time'),
