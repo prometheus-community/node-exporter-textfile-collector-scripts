@@ -11,6 +11,7 @@ import errno
 import glob
 import os
 import sys
+from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 
 def main():
@@ -54,21 +55,16 @@ def main():
             else:
                 num_processes_per_library[library] = 1
 
-    metric_name = 'node_processes_linking_deleted_libraries'
-    description = 'Count of running processes that link a deleted library'
-    print('# HELP {0} {1}'.format(metric_name, description))
-    print('# TYPE {0} gauge'.format(metric_name))
+    registry = CollectorRegistry()
+    g = Gauge('node_processes_linking_deleted_libraries',
+              'Count of running processes that link a deleted library',
+              ['library_path', 'library_name'], registry=registry)
 
     for library, count in num_processes_per_library.items():
         dir_path, basename = os.path.split(library)
-        basename = basename.replace('"', '\\"')
-        dir_path = dir_path.replace('"', '\\"')
-        print('{0}{{library_path="{1}", library_name="{2}"}} {3}'.format(
-            metric_name,
-            dir_path,
-            basename,
-            count)
-        )
+        g.labels(dir_path, basename).set(count)
+
+    print(generate_latest(registry).decode(), end='')
 
 
 if __name__ == "__main__":
