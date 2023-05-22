@@ -16,6 +16,7 @@ Requires Python 3.5 or later.
 import collections
 import os
 import sys
+from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 
 class Error(Exception):
@@ -97,44 +98,15 @@ def _get_processes_nontrivial():
     return (p for p in _get_processes() if p.inotify_instances > 0)
 
 
-def _format_gauge_metric(metric_name, metric_help, samples,
-                         value_func, tags_func=None, stream=sys.stdout):
-
-    def _println(*args, **kwargs):
-        if "file" not in kwargs:
-            kwargs["file"] = stream
-        print(*args, **kwargs)
-
-    def _print(*args, **kwargs):
-        if "end" not in kwargs:
-            kwargs["end"] = ""
-        _println(*args, **kwargs)
-
-    _println("# HELP {} {}".format(metric_name, metric_help))
-    _println("# TYPE {} gauge".format(metric_name))
-
-    for s in samples:
-        value = value_func(s)
-        tags = None
-        if tags_func:
-            tags = tags_func(s)
-
-        _print(metric_name)
-        if tags:
-            _print("{")
-            _print(",".join(["{}=\"{}\"".format(k, v) for k, v in tags]))
-            _print("}")
-        _print(" ")
-        _println(value)
-
-
 def main(args_unused=None):
-    _format_gauge_metric(
-        "inotify_instances",
-        "Total number of inotify instances held open by a process.",
-        _get_processes_nontrivial(),
-        lambda s: s.inotify_instances,
-        lambda s: [("pid", s.pid), ("uid", s.uid), ("command", s.command)])
+    registry = CollectorRegistry()
+
+    g = Gauge('inotify_instances', 'Total number of inotify instances held open by a process.',
+              ['pid', 'uid', 'command'], registry=registry)
+
+    for proc in _get_processes_nontrivial():
+        g.labels(proc.pid, proc.uid, proc.command).set(proc.inotify_instances)
+    print(generate_latest(registry).decode(), end='')
 
 
 if __name__ == "__main__":
