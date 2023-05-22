@@ -84,6 +84,7 @@ if [ "$physical" = true ]; then
   echo "$pvs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
     declare $line
     echo "node_physical_volume_size{name=\"$LVM2_PV_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_SIZE"
     echo "node_physical_volume_free{name=\"$LVM2_PV_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_FREE"
@@ -98,6 +99,7 @@ if [ "$snapshots" = true ]; then
   echo "$lvs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
     declare $line
     echo "node_lvm_snapshots_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
   done
@@ -111,6 +113,7 @@ if [ "$thin_pools" = true ]; then
   echo "$lvs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
     declare $line
     echo "node_lvm_thin_pools_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
   done
@@ -120,6 +123,7 @@ if [ "$thin_pools" = true ]; then
   echo "$lvs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
     declare $line
     echo "node_lvm_thin_pools_metadata{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_METADATA_PERCENT"
   done
@@ -136,6 +140,7 @@ if [ "$groups" = true ]; then
   echo "$vgs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
     declare $line
     echo "node_volume_group_size{name=\"$LVM2_VG_NAME\"} $LVM2_VG_SIZE"
     echo "node_volume_group_free{name=\"$LVM2_VG_NAME\"} $LVM2_VG_FREE"
