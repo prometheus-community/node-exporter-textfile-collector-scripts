@@ -2,13 +2,13 @@
 
 # storcli mock script for testing storcli textfile collector
 
-fixtures_dir=$(dirname $0)/fixtures
+fixtures_dir=$(dirname "$0")/fixtures
 
 case $@ in
     "/cALL show all J nolog")
-        cat ${fixtures_dir}/storcli_-cALL_show_all.json
+        cat "${fixtures_dir}"/storcli_-cALL_show_all.json
         ;;
     "/cALL/eALL/sALL show all J nolog")
-        cat ${fixtures_dir}/storcli_-cALL-eALL-sALL_show_all.json
+        cat "${fixtures_dir}"/storcli_-cALL-eALL-sALL_show_all.json
         ;;
 esac
