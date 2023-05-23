@@ -202,6 +202,17 @@ def main():
 
 
 if __name__ == "__main__":
+    if os.geteuid() != 0:
+        print("ERROR: script requires root privileges", file=sys.stderr)
+        sys.exit(1)
+
+    # Check if nvme-cli is installed
+    try:
+        exec_nvme()
+    except FileNotFoundError:
+        print("ERROR: nvme-cli is not installed. Aborting.", file=sys.stderr)
+        sys.exit(1)
+
     try:
         main()
     except Exception as e:
