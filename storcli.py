@@ -13,7 +13,7 @@ JSON key abbreviations used by StorCLI are documented in the standard command ou
 trailing 'J' is omitted from the command.
 
 Formatting done with Black:
-$ black -l 99 storcli.py
+$ black -l 100 storcli.py
 """
 
 import argparse
@@ -25,8 +25,8 @@ from datetime import datetime
 
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
-DESCRIPTION = "Parse StorCLI's JSON output and expose MegaRAID health as Prometheus metrics."
-VERSION = "0.1.0"
+__doc__ = "Parse StorCLI's JSON output and expose MegaRAID health as Prometheus metrics."
+__version__ = "0.1.0"
 
 storcli_path = ""
 namespace = "megaraid"
@@ -450,7 +450,7 @@ def get_storcli_json(storcli_args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument(
@@ -458,7 +458,7 @@ if __name__ == "__main__":
         default="/opt/MegaRAID/storcli/storcli64",
         help="path to StorCLI binary",
     )
-    parser.add_argument("--version", action="version", version="%(prog)s {0}".format(VERSION))
+    parser.add_argument("--version", action="version", version="%(prog)s {0}".format(__version__))
 
     args = parser.parse_args()
     main(args)
