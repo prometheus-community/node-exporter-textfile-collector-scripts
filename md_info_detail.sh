@@ -7,6 +7,7 @@
 set -eu
 
 for MD_DEVICE in /dev/md/*; do
+  if [ -b "$MD_DEVICE" ]; then
   # Subshell to avoid eval'd variables from leaking between iterations
   (
     # Resolve symlink to discover device, e.g. /dev/md127
@@ -74,7 +75,7 @@ for MD_DEVICE in /dev/md/*; do
       # Filter for lines with a ":", to use for Key/Value pairs in labels
       if echo "$line" | grep -E -q ":" ; then
         # Exclude lines with these keys, as they're values are numbers that increment up and captured in individual metrics above
-        if echo "$line" | grep -E -qv "Array Size|Used Dev Size|Events|Update Time" ; then
+        if echo "$line" | grep -E -qv "^/|Array Size|Used Dev Size|Events|Update Time|Check Status|Rebuild Status" ; then
           echo -n ", "
           MDADM_DETAIL_KEY=$(echo "$line" | cut -d ":" -f 1 | tr -cd '[a-zA-Z0-9]._-')
           MDADM_DETAIL_VALUE=$(echo "$line" | cut -d ":" -f 2- | sed 's:^ ::')
@@ -84,4 +85,5 @@ for MD_DEVICE in /dev/md/*; do
     done  <<< "$MDADM_DETAIL_OUTPUT"
     echo "} 1"
   )
+  fi
 done
