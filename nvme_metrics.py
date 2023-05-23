@@ -41,12 +41,12 @@ metrics = {
     ),
     "data_units_read": Counter(
         "data_units_read_total",
-        "Device data units read",
+        "Number of 512-byte data units read by host, reported in thousands",
         ["device"], namespace=namespace, registry=registry,
     ),
     "data_units_written": Counter(
         "data_units_written_total",
-        "Device data units written",
+        "Number of 512-byte data units written by host, reported in thousands",
         ["device"], namespace=namespace, registry=registry,
     ),
     "device_info": Gauge(
