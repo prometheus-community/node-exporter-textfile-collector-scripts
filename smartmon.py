@@ -23,6 +23,7 @@ device_info_map = {
     'Model Family': 'model_family',
     'Device Model': 'device_model',
     'Serial Number': 'serial_number',
+    'Serial number': 'serial_number',
     'Firmware Version': 'firmware_version',
 }
 
