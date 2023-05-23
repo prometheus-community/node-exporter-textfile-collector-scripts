@@ -71,6 +71,7 @@ workload_minutes
 SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
+smartctl=$(command -v smartctl)
 
 parse_smartctl_attributes() {
   local disk="$1"
@@ -165,7 +166,38 @@ format_output() {
     awk -F'{' "${output_format_awk}"
 }
 
-smartctl_version="$(/usr/sbin/smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
+# If the system is configured with multipath, we might end up having metrics of
+# duplicated disks.
+containsDisk() {
+        local serial_to_compare="$1"
+        shift
+        local device_list_filter=("$@")
+
+        for device in "${device_list_filter[@]}"; do
+                device_serial=$(echo "$device" | cut -f3 -d'|')
+                if [[ "$serial_to_compare" == "$device_serial" ]]; then
+                        echo "1"
+                        break
+                fi
+        done
+}
+
+# Create a list of unique disks
+device_disk_list() {
+        mapfile -t smartctl_device_list < <("$smartctl" --scan-open | awk '/^\/dev/{print $1 "|" $3}')
+
+        for device in "${smartctl_device_list[@]}"; do
+                disk="$(echo "${device}" | cut -f1 -d '|')"
+                serial="$($smartctl -i "$disk" | tr -d ' ' | awk -F':' '/Serial/ {print $2}')"
+
+                disk_check=$(containsDisk "${serial}" "${device_list[@]}")
+                if [[ ! $disk_check -eq "1" ]]; then
+                        device_list+=( "${device}|${serial}" )
+                fi
+        done
+}
+
+smartctl_version="$("${smartctl}" -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
 
 echo "smartctl_version{version=\"${smartctl_version}\"} 1" | format_output
 
@@ -173,27 +205,27 @@ if [[ "$(expr "${smartctl_version}" : '\([0-9]*\)\..*')" -lt 6 ]]; then
   exit
 fi
 
-device_list="$(/usr/sbin/smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}')"
-
-for device in ${device_list}; do
+# Get an unique list of disks in case they are in multipath
+device_disk_list
+for device in "${device_list[@]}"; do
   disk="$(echo "${device}" | cut -f1 -d'|')"
   type="$(echo "${device}" | cut -f2 -d'|')"
   active=1
   echo "smartctl_run{disk=\"${disk}\",type=\"${type}\"}" "$(TZ=UTC date '+%s')"
   # Check if the device is in a low-power mode
-  /usr/sbin/smartctl -n standby -d "${type}" "${disk}" > /dev/null || active=0
+  "${smartctl}" -n standby -d "${type}" "${disk}" > /dev/null || active=0
   echo "device_active{disk=\"${disk}\",type=\"${type}\"}" "${active}"
   # Skip further metrics to prevent the disk from spinning up
   test ${active} -eq 0 && continue
   # Get the SMART information and health
-  /usr/sbin/smartctl -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}"
+  "${smartctl}" -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}"
   # Get the SMART attributes
   case ${type} in
-  sat) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
-  sat+megaraid*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
-  scsi) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
-  megaraid*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
-  nvme*) /usr/sbin/smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  sat) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
+  sat+megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
+  scsi) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  megaraid*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
+  nvme*) "${smartctl}" -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk}" "${type}" ;;
   *)
       (>&2 echo "disk type is not sat, scsi, nvme or megaraid but ${type}")
     exit
