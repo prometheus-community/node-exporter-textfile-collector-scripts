@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # storcli mock script for testing storcli textfile collector
 

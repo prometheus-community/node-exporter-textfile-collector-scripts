@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ntpq mock script for testing ntpd_metrics.py textfile collector
 
