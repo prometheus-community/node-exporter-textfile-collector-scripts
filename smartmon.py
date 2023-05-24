@@ -207,7 +207,7 @@ def smart_ctl_version():
     return smart_ctl('-V').split('\n')[0].split()[1]
 
 
-def find_devices():
+def find_devices(by_id):
     """Find SMART devices.
 
     Yields:
@@ -216,7 +216,10 @@ def find_devices():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--device', dest='type')
 
-    devices = smart_ctl('--scan-open')
+    args = ['--scan-open']
+    if by_id:
+        args.extend(['-d', 'by-id'])
+    devices = smart_ctl(*args)
 
     for device in devices.split('\n'):
         device = device.strip()
@@ -398,8 +401,8 @@ def collect_ata_error_count(device):
     ).set(error_count)
 
 
-def collect_disks_smart_metrics(wakeup_disks):
-    for device in find_devices():
+def collect_disks_smart_metrics(wakeup_disks, by_id):
+    for device in find_devices(by_id):
         is_active = device_is_active(device)
         metrics["device_active"].labels(
             device.base_labels["device"], device.base_labels["disk"],
@@ -435,12 +438,15 @@ def collect_disks_smart_metrics(wakeup_disks):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true')
+    parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true',
+                        help="Wake up disks to collect live stats")
+    parser.add_argument('--by-id', dest='by_id', action='store_true',
+                        help="Use /dev/disk/by-id/X instead of /dev/sdX to index devices")
     args = parser.parse_args(sys.argv[1:])
 
     metrics["smartctl_version"].labels(smart_ctl_version()).set(1)
 
-    collect_disks_smart_metrics(args.wakeup_disks)
+    collect_disks_smart_metrics(args.wakeup_disks, args.by_id)
     print(generate_latest(registry).decode(), end="")
 
 
