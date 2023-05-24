@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-set -eu
-
+#
 # Script to give information about zpools and zfs datasets
 # Author: Brian Candler <b.candler@pobox.com>
 #
 # NOTE: zpool metrics requires zpool list -p
 # (zfsonlinux 0.7.5 OK, 0.6.5.6 not OK)
+
+set -eu
 
 # which dataset types to show
 DATASET_TYPES="filesystem,volume"

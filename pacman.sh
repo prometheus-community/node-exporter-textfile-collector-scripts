@@ -1,5 +1,4 @@
-#!/bin/bash
-#
+#!/usr/bin/env bash
 #
 # Description: Expose metrics from pacman updates
 # If installed The bash script *checkupdates*, included with the

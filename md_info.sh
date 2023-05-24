@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -eu
 
 for MD_DEVICE in /dev/md/*; do

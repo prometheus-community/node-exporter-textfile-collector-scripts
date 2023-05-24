@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -eu
-
+#
 # Dependencies: nvme-cli, jq (packages)
 # Based on code from
 # - https://github.com/prometheus/node_exporter/blob/master/text_collector_examples/smartmon.sh
@@ -8,6 +7,8 @@ set -eu
 # - https://github.com/vorlon/check_nvme/blob/master/check_nvme.sh
 #
 # Author: Henk <henk@wearespindle.com>
+
+set -eu
 
 # Ensure predictable numeric / date formats, etc.
 export LC_ALL=C

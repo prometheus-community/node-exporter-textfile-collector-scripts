@@ -1,5 +1,5 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+#
 # Expose various types of information about lvm2
 #
 # Usage: lvm-prom-collector <options>

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 # Description: Expose device mapper multipathing metrics from multipathd.
 #

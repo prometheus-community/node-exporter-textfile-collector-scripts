@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#
 # Note: This script uses "mdadm --detail" to get some of the metrics, so it must be run as root.
 #       It is designed to be run periodically in a cronjob, and output to /var/lib/node_exporter/textfile_collector/md_info_detail.prom
 #       $ cat /etc/cron.d/prometheus_md_info_detail

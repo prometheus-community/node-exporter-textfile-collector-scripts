@@ -1,8 +1,10 @@
-#!/bin/sh -e
-
+#!/usr/bin/env sh
+#
 # Generate node_os_info and node_os_version metrics on legacy systems
 # which are not handled by node_exporter's own collector
 # (e.g. CentOS 6)
+
+set -e
 
 [ -f /etc/os-release ] && exit 0
 [ -f /usr/lib/os-release ] && exit 0

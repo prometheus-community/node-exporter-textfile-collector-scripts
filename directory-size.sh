@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 # Expose directory usage metrics, passed as an argument.
 #
@@ -9,6 +9,7 @@
 # sed pattern taken from https://www.robustperception.io/monitoring-directory-sizes-with-the-textfile-collector/
 #
 # Author: Antoine Beaupré <anarcat@debian.org>
+
 echo "# HELP node_directory_size_bytes Disk space used by some directories"
 echo "# TYPE node_directory_size_bytes gauge"
 du --block-size=1 --summarize "$@" \
