@@ -17,7 +17,7 @@ import subprocess
 # Disable automatic addition of _created series. Must be set before importing prometheus_client.
 os.environ["PROMETHEUS_DISABLE_CREATED_SERIES"] = "true"
 
-from prometheus_client import CollectorRegistry, Counter, Gauge, generate_latest  # noqa: E402
+from prometheus_client import CollectorRegistry, Counter, Gauge, Info, generate_latest  # noqa: E402
 
 registry = CollectorRegistry()
 namespace = "nvme"
@@ -49,8 +49,8 @@ metrics = {
         "Number of 512-byte data units written by host, reported in thousands",
         ["device"], namespace=namespace, registry=registry,
     ),
-    "device_info": Gauge(
-        "device_info",
+    "device_info": Info(
+        "device",
         "Device information",
         ["device", "model", "firmware", "serial"], namespace=namespace, registry=registry,
     ),
@@ -164,7 +164,7 @@ def main():
             device["ModelNumber"],
             device["Firmware"],
             device["SerialNumber"].strip(),
-        ).set(1)
+        )
 
         metrics["sector_size"].labels(device_path).set(device["SectorSize"])
         metrics["physical_size"].labels(device_path).set(device["PhysicalSize"])
