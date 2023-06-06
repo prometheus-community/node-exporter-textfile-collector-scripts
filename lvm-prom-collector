@@ -30,6 +30,7 @@ display_usage() {
   echo "Use -g for used and free space of logical volume groups."
   echo "Use -p for used and free space of physical volumes."
   echo "Use -s for the percentage usage of snapshots."
+  echo "Use -c for the percentage usage of caches."
   echo "Use -t for the percentage usage of thin pools."
   echo "Use -a to enable everything."
 }
@@ -46,10 +47,11 @@ fi
 
 thin_pools=false
 snapshots=false
+caches=false
 physical=false
 groups=false
 
-while getopts "ahtpsg" opt; do
+while getopts "ahtpscg" opt; do
   case $opt in
     a)
       thin_pools=true
@@ -62,6 +64,9 @@ while getopts "ahtpsg" opt; do
       ;;
     s)
       snapshots=true
+      ;;
+    c)
+      caches=true
       ;;
     g)
       groups=true
@@ -109,6 +114,20 @@ if [ "$snapshots" = true ]; then
     # shellcheck disable=SC2086
     declare $line
     echo "node_lvm_snapshots_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
+  done
+fi
+
+if [ "$caches" = true ]; then
+  echo "# HELP node_lvm_caches_allocated percentage of allocated data to a cache"
+  echo "# TYPE node_lvm_caches_allocated gauge"
+
+  lvs_output=$(lvs --noheadings --select 'lv_attr=~[^C.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent 2>/dev/null)
+  echo "$lvs_output" | while IFS= read -r line; do
+    # Skip if the line is empty
+    [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
+    declare $line
+    echo "node_lvm_caches_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
   done
 fi
 
