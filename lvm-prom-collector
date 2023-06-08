@@ -48,8 +48,14 @@ snapshots=false
 physical=false
 groups=false
 
-while getopts "htpsg" opt; do
+while getopts "ahtpsg" opt; do
   case $opt in
+    a)
+      thin_pools=true
+      snapshots=true
+      physical=true
+      groups=true
+      ;;
     p)
       physical=true
       ;;
