@@ -36,15 +36,15 @@ parse_ssacli_controller(){
     local controller_mats=("$@")
     for matric in "${controller_mats[@]}"
     do
-        key="$(echo $matric | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._'| sed 's/__/_/g')"
-        value="$(echo $matric | awk -F: '{print $2}')"
+        key="$(echo "$matric" | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._'| sed 's/__/_/g')"
+        value="$(echo "$matric" | awk -F: '{print $2}')"
         
         case "${key}" in
         *status*) format_status  ;;
-        *temp*)  value=$value ;;
+        *temp*)  true ;;
         *)  value="";;
 	    esac
-        if  [[ ! -z "$value" ]];then 
+        if  [[ -n "$value" ]];then 
         echo "ssa_cli_controller_$key{controller=\"${controller}\"} ${value}" 
         fi
         
@@ -57,16 +57,16 @@ parse_ssacli_device(){
     local device_mats=("$@")
     for matric in "${device_mats[@]}"
     do
-        key="$(echo $matric | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._')"
-        value="$(echo $matric | awk -F: '{print $2}')"
+        key="$(echo "$matric" | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._')"
+        value="$(echo "$matric" | awk -F: '{print $2}')"
 
 	case "${key}" in
         status) format_status  ;;
-        *temp*)  value=$value ;;
-	*remain*) value=$(echo ${value} | awk '{print $1}'|sed 's/%//g');;
+        *temp*)  true ;;
+	*remain*) value=$(echo "${value}" | awk '{print $1}'|sed 's/%//g');;
         *)  value="";;
         esac
-        if  [[ ! -z "$value" ]];then
+        if  [[ -n "$value" ]];then
         echo "ssa_cli_device_$key{controller=\"${controller}\",device=\"${device}\"} ${value}"
         fi
     done
@@ -79,15 +79,15 @@ parse_ssacli_l_device(){
     local l_device_mats=("$@")
     for matric in "${l_device_mats[@]}"
     do
-        key="$(echo $matric | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._')"
-        value="$(echo $matric | awk -F: '{print $2}')"
+        key="$(echo "$matric" | awk -F: '{print $1}'| tr '[:upper:]' '[:lower:]'| tr -cd '[:alnum:]._')"
+        value="$(echo "$matric" | awk -F: '{print $2}')"
 
         case "${key}" in
         *status*) format_status  ;;
         *errors*) format_errors ;;
         *)  value="";;
             esac
-        if  [[ ! -z "$value" ]];then
+        if  [[ -n "$value" ]];then
 	        echo "ssa_cli_logical_device_$key{controller=\"${controller}\",logical_device=\"${l_device}\"} ${value}"
 	fi
     done
@@ -96,18 +96,18 @@ parse_ssacli_l_device(){
 controllers=$(ssacli ctrl all show detail | grep slot: -i| awk '{print $2}')
 for controller in $controllers
 do
-  mapfile -t controller_matrics < <(/usr/sbin/ssacli ctrl slot=$controller show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
+  mapfile -t controller_matrics < <(/usr/sbin/ssacli ctrl slot="$controller" show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
   parse_ssacli_controller "${controller}" "${controller_matrics[@]}"
-  devices=$(ssacli ctrl slot=$controller pd all show | grep  physicaldrive | awk '{print $2}' )
-  l_devices=$(ssacli ctrl slot=$controller ld all show | grep  logicaldrive | awk '{print $2}' )
+  devices=$(ssacli ctrl slot="$controller" pd all show | grep  physicaldrive | awk '{print $2}' )
+  l_devices=$(ssacli ctrl slot="$controller" ld all show | grep  logicaldrive | awk '{print $2}' )
   for device in ${devices}
   do
-    mapfile -t device_matrics < <(/usr/sbin/ssacli ctrl slot=$controller pd "${device}" show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
+    mapfile -t device_matrics < <(/usr/sbin/ssacli ctrl slot="$controller" pd "${device}" show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
     parse_ssacli_device "${controller}" "${device}" "${device_matrics[@]}"       
   done
   for l_device in ${l_devices}
   do
-    mapfile -t l_device_matrics < <(/usr/sbin/ssacli ctrl slot=$controller ld "${l_device}" show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
+    mapfile -t l_device_matrics < <(/usr/sbin/ssacli ctrl slot="$controller" ld "${l_device}" show | grep ": "| sed 's/^[ ]*//g' | awk -F: '{gsub(/ /,"_",$1);print $1":"$2 }')
     parse_ssacli_l_device "${controller}" "${l_device}" "${l_device_matrics[@]}"       
   done
 done | format_output
