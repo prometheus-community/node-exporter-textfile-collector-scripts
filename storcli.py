@@ -385,7 +385,7 @@ def get_storcli_json(storcli_args):
     """Get storcli output in JSON format."""
     # Check if storcli is installed and executable
     if not (os.path.isfile(storcli_path) and os.access(storcli_path, os.X_OK)):
-        SystemExit(1)
+        raise SystemExit(1)
 
     storcli_cmd = [storcli_path]
     storcli_cmd.extend(shlex.split(storcli_args))
@@ -398,7 +398,7 @@ def get_storcli_json(storcli_args):
     data = json.loads(stdout.decode())
 
     if data["Controllers"][0]["Command Status"]["Status"] != "Success":
-        SystemExit(1)
+        raise SystemExit(1)
     return data
 
 
