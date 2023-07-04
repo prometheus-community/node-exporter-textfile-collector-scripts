@@ -183,9 +183,9 @@ def main():
         metrics["host_write_commands"].labels(device_name).inc(
             int(smart_log["host_write_commands"])
         )
-        metrics["avail_spare"].labels(device_name).set(smart_log["avail_spare"] / 100)
-        metrics["spare_thresh"].labels(device_name).set(smart_log["spare_thresh"] / 100)
-        metrics["percent_used"].labels(device_name).set(smart_log["percent_used"] / 100)
+        metrics["avail_spare"].labels(device_name).set(smart_log["avail_spare"])
+        metrics["spare_thresh"].labels(device_name).set(smart_log["spare_thresh"])
+        metrics["percent_used"].labels(device_name).set(smart_log["percent_used"])
         metrics["critical_warning"].labels(device_name).set(smart_log["critical_warning"])
         metrics["media_errors"].labels(device_name).inc(int(smart_log["media_errors"]))
         metrics["num_err_log_entries"].labels(device_name).inc(

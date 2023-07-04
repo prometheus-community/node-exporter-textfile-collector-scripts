@@ -60,13 +60,13 @@ for device in ${device_list}; do
   value_temperature="$(echo "$json_check" | jq '.temperature - 273')"
   echo "temperature_celsius{device=\"${disk}\"} ${value_temperature}"
 
-  value_available_spare="$(echo "$json_check" | jq '.avail_spare / 100')"
+  value_available_spare="$(echo "$json_check" | jq '.avail_spare')"
   echo "available_spare_ratio{device=\"${disk}\"} ${value_available_spare}"
 
-  value_available_spare_threshold="$(echo "$json_check" | jq '.spare_thresh / 100')"
+  value_available_spare_threshold="$(echo "$json_check" | jq '.spare_thresh')"
   echo "available_spare_threshold_ratio{device=\"${disk}\"} ${value_available_spare_threshold}"
 
-  value_percentage_used="$(echo "$json_check" | jq '.percent_used / 100')"
+  value_percentage_used="$(echo "$json_check" | jq '.percent_used')"
   echo "percentage_used_ratio{device=\"${disk}\"} ${value_percentage_used}"
 
   value_critical_warning="$(echo "$json_check" | jq '.critical_warning')"
