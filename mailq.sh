@@ -3,29 +3,35 @@
 # Description: Expose the size of the mail queue from mailq command.
 #
 # Author: Thore Guentel <thore.guentel@tangogolf.de>
+# Version: 1.1.0
 #
 # Results:
-# * 0 and more is the count of the mailq objects
-# * -1 means mailq command is not found
-# * -2 means error at checking the mailq
+# 0 and more is the count of the mailq objects
 #
 
-METRIC="mailq_size_total"
-HELPTXT="# HELP $METRIC Count of Mails in the Queue"
-TYPETXT="# TYPE $METRIC gauge"
+METRIC_RES="mailq_queue_size_total"
+HELP_RES="# HELP $METRIC_RES Count of mails in the queue"
+TYPE_RES="# TYPE $METRIC_RES gauge"
 
 MAILQCMD=$(which mailq)
-if [ "$MAILQCMD" != "" ]
-  then
-  QLEN=$($MAILQCMD | grep -c "^[A-F0-9]")
-  if [ $QLEN -ge 0 ]
-    then
-    RES=$QLEN
+
+if [ "$MAILQCMD" != "" ]; then
+  $MAILQCMD 2>&1>/dev/null
+  if [ $? -gt 0 ]; then
+    echo "Mail system seems to be down"
+    exit 3
   else
-    RES=-2
+    QLEN=$($MAILQCMD 2>/dev/null | grep -c "^[A-F0-9]")
+    if [ $QLEN -ge 0 ]; then
+      RES=$QLEN
+    else
+      echo "mailq could not be checked"
+      exit 2
+    fi
   fi
 else
-  RES=-1
+  echo "mailq command not found"
+  exit 1
 fi
 
-echo -e $HELPTXT\\n$TYPETXT\\n$METRIC $RES
+echo -e $HELP_RES\\n$TYPE_RES\\n$METRIC_RES $RES
