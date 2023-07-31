@@ -14,6 +14,8 @@ import contextlib
 import os
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
+hostPrefix = os.environ.get("APT_HOSTPREFIX","/")
+
 _UpgradeInfo = collections.namedtuple("_UpgradeInfo", ["labels", "count"])
 
 
@@ -77,11 +79,11 @@ def _write_autoremove_pending(registry, cache):
 def _write_reboot_required(registry):
     g = Gauge('node_reboot_required', "Node reboot is required for software updates.",
               registry=registry)
-    g.set(int(os.path.isfile('/run/reboot-required')))
+    g.set(int(os.path.isfile(os.path.join(hostPrefix,'/run/reboot-required'))))
 
 
 def _main():
-    cache = apt.cache.Cache()
+    cache = apt.cache.Cache(rootdir=hostPrefix)
 
     # First of all, attempt to update the index. If we don't have permission
     # to do so (or it fails for some reason), it's not the end of the world,
