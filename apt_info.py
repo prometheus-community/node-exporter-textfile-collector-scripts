@@ -111,7 +111,7 @@ def _write_cache_timestamps(registry):
 def _write_reboot_required(registry):
     g = Gauge('node_reboot_required', "Node reboot is required for software updates.",
               registry=registry)
-    g.set(int(os.path.isfile(os.path.join(hostPrefix,'/run/reboot-required'))))
+    g.set(int(os.path.isfile(os.path.join(hostPrefix,'run/reboot-required'))))
 
 
 def _main():
