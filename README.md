@@ -15,7 +15,7 @@ Sponge comes from [moreutils](https://joeyh.name/code/moreutils/)
 * [apt install moreutils](https://packages.debian.org/search?keywords=moreutils)
 * [pkg install moreutils](https://www.freshports.org/sysutils/moreutils/)
 
-*Caveat*: sponge cannot write atomically if the path specified by the `TMPDIR`
+*Caveat*: sponge cannot write automically if the path specified by the `TMPDIR`
 environment variable is not on the same filesystem as the target output file.
 
 For more information see:
