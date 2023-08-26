@@ -2,7 +2,7 @@
 Description=Gather S.M.A.R.T. metrics to be picked up by prometheus node exporter
 
 [Service]
-ExecStart=smartmon.sh | sponge /tmp/smartmon.prom
+ExecStart=bash -c "smartmon.sh | sponge /tmp/smartmon.prom"
 
 [Install]
 WantedBy=multi-user.target
