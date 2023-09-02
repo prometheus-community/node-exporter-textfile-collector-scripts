@@ -353,7 +353,9 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
         metrics["pd_link_speed"].labels(controller_index, enclosure, slot).set(
             attributes["Link Speed"].split(".")[0]
         )
-        # Some disks doesnt report device speed correctly, when we assign pd_device_speed metric a string value: "Unknown", script execution crashes, in that case assign a 0 speed value.
+        # Some disks doesnt report device speed correctly
+        # when pd_device_speed metric assigns a string value: "Unknown"
+        # script execution crashes in that case assign a 0 speed value.
         if attributes["Device Speed"].split(".")[0] == "Unknown":
             metrics["pd_device_speed"].labels(controller_index, enclosure, slot).set('0')
         else:
