@@ -20,10 +20,11 @@
 # Authors: Kyle Fazzari <kyrofa@ubuntu.com>
 #          Daniel Swarbrick <dswarbrick@debian.org>
 
-import apt
-import apt_pkg
+import argparse
 import collections
 import os
+import apt
+import apt_pkg
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 _UpgradeInfo = collections.namedtuple("_UpgradeInfo", ["labels", "count"])
@@ -38,12 +39,12 @@ def _convert_candidates_to_upgrade_infos(candidates):
         )
         changes_dict[",".join(origins)][candidate.architecture] += 1
 
-    changes_list = list()
+    changes_list = []
     for origin in sorted(changes_dict.keys()):
         for arch in sorted(changes_dict[origin].keys()):
             changes_list.append(
                 _UpgradeInfo(
-                    labels=dict(origin=origin, arch=arch),
+                    labels={"origin": origin, "arch": arch},
                     count=changes_dict[origin][arch],
                 )
             )
@@ -86,38 +87,50 @@ def _write_autoremove_pending(registry, cache):
     g.set(len(autoremovable_packages))
 
 
-def _write_cache_timestamps(registry):
+def _write_cache_timestamps(registry, root_dir):
     g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
     apt_pkg.init_config()
     if apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists"):
         # if we run updates automatically with APT::Periodic, we can
         # check this timestamp file
-        stamp_file = "/var/lib/apt/periodic/update-success-stamp"
+        stamp_file = os.path.join(root_dir, 'var/lib/apt/periodic/update-success-stamp')
     else:
         # if not, let's just fallback on the lists directory
-        stamp_file = '/var/lib/apt/lists'
+        stamp_file = os.path.join(root_dir, 'var/lib/apt/lists')
     try:
         g.set(os.stat(stamp_file).st_mtime)
     except OSError:
         pass
 
 
-def _write_reboot_required(registry):
+def _write_reboot_required(registry, root_dir):
     g = Gauge('node_reboot_required', "Node reboot is required for software updates.",
               registry=registry)
-    g.set(int(os.path.isfile('/run/reboot-required')))
+    g.set(int(os.path.isfile(os.path.join(root_dir, 'run/reboot-required'))))
 
 
-def _main():
-    cache = apt.cache.Cache()
-
+def generate_metrics(root_dir: str = '/') -> bytes:
+    cache = apt.cache.Cache(rootdir=root_dir)
     registry = CollectorRegistry()
+
     _write_pending_upgrades(registry, cache)
     _write_held_upgrades(registry, cache)
     _write_autoremove_pending(registry, cache)
-    _write_cache_timestamps(registry)
-    _write_reboot_required(registry)
-    print(generate_latest(registry).decode(), end='')
+    _write_cache_timestamps(registry, root_dir)
+    _write_reboot_required(registry, root_dir)
+
+    return generate_latest(registry)
+
+
+def _main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--root-dir', dest='root_dir', type=str, default='/',
+                        help="Set root directory to a different path than /")
+    args = parser.parse_args()
+
+    metrics = generate_metrics(args.root_dir)
+
+    print(metrics.decode(), end='')
 
 
 if __name__ == "__main__":
