@@ -74,6 +74,14 @@ def _write_autoremove_pending(registry, cache):
     g.set(len(autoremovable_packages))
 
 
+def _write_cache_timestamps(registry):
+    g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
+    try:
+        g.set(os.stat('/var/cache/apt/pkgcache.bin').st_mtime)
+    except OSError:
+        pass
+
+
 def _write_reboot_required(registry):
     g = Gauge('node_reboot_required', "Node reboot is required for software updates.",
               registry=registry)
@@ -96,6 +104,7 @@ def _main():
     _write_pending_upgrades(registry, cache)
     _write_held_upgrades(registry, cache)
     _write_autoremove_pending(registry, cache)
+    _write_cache_timestamps(registry)
     _write_reboot_required(registry)
     print(generate_latest(registry).decode(), end='')
 
