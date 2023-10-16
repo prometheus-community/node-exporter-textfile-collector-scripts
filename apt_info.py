@@ -3,6 +3,18 @@
 # Description: Expose metrics from apt. This is inspired by and
 # intended to be a replacement for the original apt.sh.
 #
+# This script deliberately does *not* update the apt cache. You need
+# something else to run `apt update` regularly for the metrics to be
+# up to date. This can be done in numerous ways, but the canonical way
+# is to use the normal `APT::Periodic::Update-Package-Lists`
+# setting.
+#
+# This, for example, will enable a nightly job that runs `apt update`:
+#
+#     echo 'APT::Periodic::Update-Package-Lists "1";' > /etc/apt/apt.conf.d/99_auto_apt_update.conf
+#
+# See /usr/lib/apt/apt.systemd.daily for details.
+#
 # Dependencies: python3-apt, python3-prometheus-client
 #
 # Authors: Kyle Fazzari <kyrofa@ubuntu.com>
@@ -10,7 +22,6 @@
 
 import apt
 import collections
-import contextlib
 import os
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
@@ -90,15 +101,6 @@ def _write_reboot_required(registry):
 
 def _main():
     cache = apt.cache.Cache()
-
-    # First of all, attempt to update the index. If we don't have permission
-    # to do so (or it fails for some reason), it's not the end of the world,
-    # we'll operate on the old index.
-    with contextlib.suppress(apt.cache.LockFailedException, apt.cache.FetchFailedException):
-        cache.update()
-
-    cache.open()
-    cache.upgrade(True)
 
     registry = CollectorRegistry()
     _write_pending_upgrades(registry, cache)
