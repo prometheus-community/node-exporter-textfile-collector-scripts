@@ -21,6 +21,7 @@
 #          Daniel Swarbrick <dswarbrick@debian.org>
 
 import apt
+import apt_pkg
 import collections
 import os
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
@@ -87,8 +88,16 @@ def _write_autoremove_pending(registry, cache):
 
 def _write_cache_timestamps(registry):
     g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
+    apt_pkg.init_config()
+    if apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists"):
+        # if we run updates automatically with APT::Periodic, we can
+        # check this timestamp file
+        stamp_file = "/var/lib/apt/periodic/update-success-stamp"
+    else:
+        # if not, let's just fallback on the lists directory
+        stamp_file = '/var/lib/apt/lists'
     try:
-        g.set(os.stat('/var/cache/apt/pkgcache.bin').st_mtime)
+        g.set(os.stat(stamp_file).st_mtime)
     except OSError:
         pass
 
