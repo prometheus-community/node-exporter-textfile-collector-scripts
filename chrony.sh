@@ -2,7 +2,6 @@
 
 # Author: Tamir Suliman
 # Script inspired by the chrony.py
-# Usage: add this to crontab:
 
 
 # Extract chronyc tracking data and write it to a Prometheus text file collector
