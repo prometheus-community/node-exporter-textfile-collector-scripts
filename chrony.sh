@@ -2,6 +2,8 @@
 
 # Author: Tamir Suliman
 # Script inspired by the chrony.py
+#
+# 
 
 
 # Extract chronyc tracking data and write it to a Prometheus text file collector
