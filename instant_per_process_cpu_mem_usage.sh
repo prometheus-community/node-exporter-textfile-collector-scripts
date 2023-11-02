@@ -2,7 +2,7 @@
 
 # Get CPU & Mem metrics, lightweight implementation
 # Written (quickly) in 2023 by NetInvent
-# SCRIPT_VERSION 2023060201
+# SCRIPT_VERSION 2023110201
 
 
 # -w [n] forces total column width to [n] so data won't be truncated
@@ -14,8 +14,11 @@ top -w 120 -cbn 1 | awk '{
         if (NR<8) { next };
         # Get all command arguments
         args=""; for(i = 13; i<= NF; i++) if ($i!="") {args=args" "$i};
-        # Sanitize argumetns
+        # Sanitize arguments
         gsub("{|}|\"", "", args);
+        # Sanitize debian style floats in top
+        gsub(",", ".", $9);
+        gsub(",", ".", $10);
         # Dont keep more than 30 chars for args, since we limited top -w size, we wont need this
         #args=substr(args, 1, 30);
         # Remove self process
