@@ -15,7 +15,7 @@ top -w 120 -cbn 1 | awk '{
         # Get all command arguments
         args=""; for(i = 13; i<= NF; i++) if ($i!="") {args=args" "$i};
         # Sanitize arguments
-        gsub("{|}|\"", "", args);
+        gsub("{|}|\\\\|\"", "", args);
         # Sanitize debian style floats in top
         gsub(",", ".", $9);
         gsub(",", ".", $10);
