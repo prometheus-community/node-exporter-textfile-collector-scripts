@@ -155,6 +155,11 @@ metrics = {
         "MegaRAID physical drive emergency spare",
         ["controller", "enclosure", "slot"], namespace=namespace, registry=registry,
     ),
+    "pd_temperature": Gauge(
+        "pd_temperature",
+        "MegaRAID physical drive temperature",
+        ["controller", "enclosure", "slot"], namespace=namespace, registry=registry,
+    ),
     "pd_info": Gauge(
         "pd_info",
         "MegaRAID physical drive info",
@@ -344,6 +349,10 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
         metrics["pd_other_errors"].labels(controller_index, enclosure, slot).set(
             state["Other Error Count"]
         )
+        if "Drive Temperature" in state:
+            metrics["pd_temperature"].labels(controller_index, enclosure, slot).set(
+                state["Drive Temperature"].split("C")[0].strip()
+            )
         metrics["pd_predictive_errors"].labels(controller_index, enclosure, slot).set(
             state["Predictive Failure Count"]
         )
