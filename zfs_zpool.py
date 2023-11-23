@@ -298,21 +298,28 @@ def none_to_empty_string(value):
     return "" if value is None else value
 
 
+ZFS_STATUS_PATTERN = r"^\s*pool:\s+(?:.+(?=^\s*pool:\s+)|.+\Z)"
+ZFS_STATUS_KEY_VALUE_PATTERN = r"^\s*(\w+):\s*(.+?(?=^\s*\w+:)|.*\Z)"
+ZFS_STATUS_CONFIG_PATTERN = (
+    r"^([\t ]*)(\S+)(?:[\t ]+(\S+)(?:[\t ]+(\S+)[\t ]+(\S+)[\t ]+(\S+)(?:[\t ]+([^\n]+))?)?)?$"
+)
+ZFS_STATUS_SCAN_PATTERN = (
+    r"(?P<activity>scrub repaired|resilvered) (?P<corrected>\S+)"
+    r" in (?P<duration>\S+) with (\d+) errors on (?P<at>.+)$"
+)
+
+
 def zpool_status_parse(content: str) -> list[ZpoolStatus]:
     statuses: list[ZpoolStatus] = []
 
-    for status in re.findall(
-        r"^\s*pool:\s+(?:.+(?=^\s*pool:\s+)|.+\Z)", content, re.MULTILINE | re.DOTALL
-    ):
+    for status in re.findall(ZFS_STATUS_PATTERN, content, re.MULTILINE | re.DOTALL):
         matched_pairs: list[tuple[str, str]] = re.findall(
-            r"^\s*(\w+):\s*(.+?(?=^\s*\w+:)|.*\Z)", status, re.MULTILINE | re.DOTALL
+            ZFS_STATUS_KEY_VALUE_PATTERN, status, re.MULTILINE | re.DOTALL
         )
         matches = dict([(key, value.strip()) for key, value in matched_pairs])
 
         configs = re.findall(
-            r"^([\t ]*)(\S+)(?:[\t ]+(\S+)(?:[\t ]+(\S+)[\t ]+(\S+)[\t ]+(\S+)(?:[\t ]+([^\n]+))?)?)?$",
-            matches.get("config", ""),
-            re.MULTILINE | re.DOTALL,
+            ZFS_STATUS_CONFIG_PATTERN, matches.get("config", ""), re.MULTILINE | re.DOTALL
         )
 
         if len(configs) == 0:
@@ -387,10 +394,7 @@ def zpool_status_parse(content: str) -> list[ZpoolStatus]:
 
         scrub = None
         resilvering = None
-        scan = re.match(
-            r"(?P<activity>scrub repaired|resilvered) (?P<corrected>\S+) in (?P<duration>\S+) with (\d+) errors on (?P<at>.+)$",
-            matches.get("scan", ""),
-        )
+        scan = re.match(ZFS_STATUS_SCAN_PATTERN, matches.get("scan", ""))
         if scan:
             scan_info = ZpoolScan(
                 at=datetime.strptime(scan.group("at"), "%a %b %d %H:%M:%S %Y"),
