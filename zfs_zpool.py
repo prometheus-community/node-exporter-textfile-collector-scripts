@@ -6,6 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from functools import reduce
+from typing import Generator, TypeVar
+
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 ZPOOL_METADATA_LABELS = ("health", "version", "readonly", "ashift", "autoreplace", "failmode")
@@ -24,7 +26,7 @@ def zpool_metadata(registry: CollectorRegistry):
         metric.labels(*constant_labels)
 
 
-def run(cmd: tuple[str, ...]):
+def run(cmd: tuple[str, ...]) -> Generator[str, None, None]:
     popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=dict(os.environ, LC_ALL="C"))
 
     if popen.stdout is None:
@@ -40,7 +42,7 @@ def run(cmd: tuple[str, ...]):
         raise subprocess.CalledProcessError(return_code, cmd)
 
 
-def run_tabular(cmd):
+def run_tabular(cmd) -> Generator[list[str], None, None]:
     for line in run(cmd):
         yield line.strip().split("\t")
 
@@ -58,7 +60,7 @@ ZPOOL_INFO_METRICS = (
 )
 
 
-def zpool_info(registry: CollectorRegistry):
+def zpool_info(registry: CollectorRegistry) -> None:
     cmd = (
         "zpool",
         "list",
@@ -97,7 +99,7 @@ DATASET_METADATA_LABELS = [
 DATASET_TYPES = ("filesystem", "volume")
 
 
-def dataset_metadata(registry: CollectorRegistry):
+def dataset_metadata(registry: CollectorRegistry) -> None:
     cmd = (
         "zfs",
         "list",
@@ -147,7 +149,7 @@ DATASET_INFO_METRICS = (
 )
 
 
-def dataset_metrics(registry: CollectorRegistry):
+def dataset_metrics(registry: CollectorRegistry) -> None:
     cmd = (
         "zfs",
         "list",
@@ -206,7 +208,7 @@ class ZpoolStatus:
     resilvering: ZpoolScan | None = None
 
 
-def zpool_status(registry: CollectorRegistry):
+def zpool_status(registry: CollectorRegistry) -> None:
     cmd = ("zpool", "status", "-p")
     metrics = {}
 
@@ -222,10 +224,10 @@ def zpool_status(registry: CollectorRegistry):
         metrics["status"].labels(status.name, status.state).set(1)
 
         if status.scrub:
-            scan_metrics("scrub", metrics, registry, status.scrub)
+            scan_metrics("scrub", metrics, registry, status, status.scrub)
 
         if status.resilvering:
-            scan_metrics("resilvering", metrics, registry, status.resilvering)
+            scan_metrics("resilvering", metrics, registry, status, status.resilvering)
 
         for config in status.configs:
             if "vdev_info" not in metrics:
@@ -261,7 +263,7 @@ def scan_metrics(
     registry: CollectorRegistry,
     status: ZpoolStatus,
     scan: ZpoolScan,
-):
+) -> None:
     if f"{activity}_duration" not in metrics:
         metrics[f"{activity}_duration"] = Gauge(
             f"zpool_{activity}_duration",
@@ -294,7 +296,10 @@ def scan_metrics(
     metrics[f"{activity}_time"].labels(status.name).set(scan.at.timestamp())
 
 
-def none_to_empty_string(value):
+T = TypeVar('T')
+
+
+def none_to_empty_string(value: T | None) -> T | str:
     return "" if value is None else value
 
 
@@ -422,7 +427,7 @@ def zpool_status_parse(content: str) -> list[ZpoolStatus]:
 SI_UNITS = {"B": 0, "K": 1, "M": 2, "G": 3, "T": 4, "P": 5, "E": 6, "Z": 7, "Y": 8}
 
 
-def parse_si_unit(value: str):
+def parse_si_unit(value: str) -> int:
     if value.isdecimal():
         return round(float(value))
     return round(float(value[:-1]) * (1024 ** SI_UNITS[value[-1].upper()]))
@@ -431,7 +436,7 @@ def parse_si_unit(value: str):
 TIME_UNITS = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks", "y": "years"}
 
 
-def parse_time_duration(value: str):
+def parse_time_duration(value: str) -> timedelta:
     delta = timedelta(seconds=0)
     if ":" in value:
         for p, n in enumerate(value.split(":")[::-1]):
@@ -449,7 +454,7 @@ def parse_time_duration(value: str):
     return delta
 
 
-def main():
+def main() -> None:
     registry = CollectorRegistry()
 
     funcs = (zpool_metadata, zpool_info, dataset_metadata, dataset_metrics, zpool_status)
