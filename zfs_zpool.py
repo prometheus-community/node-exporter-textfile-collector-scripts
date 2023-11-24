@@ -377,7 +377,7 @@ def zpool_status_parse(content: str) -> list[ZpoolStatus]:
                 replace(
                     config,
                     path=[
-                        *(acc[-1].path[0 : config.indent - offset] if len(acc) > 0 else []),
+                        *(acc[-1].path[0:config.indent - offset] if len(acc) > 0 else []),
                         config.name,
                     ],
                 )
