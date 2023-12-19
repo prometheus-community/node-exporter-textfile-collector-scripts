@@ -93,7 +93,7 @@ if [ "$physical" = true ]; then
     # shellcheck disable=SC2086
     declare $line
     echo "node_physical_volume_size{name=\"$LVM2_PV_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_SIZE"
-    echo "node_physical_volume_free{name=\"$LVM2_PV_NAME\",vg_name=\"$LVM2_VG_NAME\" uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_FREE"
+    echo "node_physical_volume_free{name=\"$LVM2_PV_NAME\",vg_name=\"$LVM2_VG_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_FREE"
   done
 fi
 
