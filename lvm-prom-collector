@@ -86,14 +86,14 @@ if [ "$physical" = true ]; then
   echo "# HELP node_physical_volume_free Physical volume free space in bytes"
   echo "# TYPE node_physical_volume_free gauge"
 
-  pvs_output=$(pvs --noheadings --units b --nosuffix --nameprefixes --unquoted --options pv_name,pv_fmt,pv_free,pv_size,pv_uuid 2>/dev/null)
+  pvs_output=$(pvs --noheadings --units b --nosuffix --nameprefixes --unquoted --options pv_name,vg_name,pv_fmt,pv_free,pv_size,pv_uuid 2>/dev/null)
   echo "$pvs_output" | while IFS= read -r line; do
     # Skip if the line is empty
     [ -z "$line" ] && continue
     # shellcheck disable=SC2086
     declare $line
     echo "node_physical_volume_size{name=\"$LVM2_PV_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_SIZE"
-    echo "node_physical_volume_free{name=\"$LVM2_PV_NAME\", uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_FREE"
+    echo "node_physical_volume_free{name=\"$LVM2_PV_NAME\",vg_name=\"$LVM2_VG_NAME\" uuid=\"$LVM2_PV_UUID\", format=\"$LVM2_PV_FMT\"} $LVM2_PV_FREE"
   done
 fi
 
