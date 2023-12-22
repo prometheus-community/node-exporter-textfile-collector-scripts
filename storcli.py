@@ -384,9 +384,11 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
         ).set(1)
 
         if "Drive Temperature" in state:
-            metrics["pd_temp"].labels(controller_index, enclosure, slot).set(
-                state["Drive Temperature"].split("C")[0].strip()
-            )
+            temperature = state["Drive Temperature"].split("C")[0].strip()
+            if temperature.isnumeric():
+                metrics["pd_temp"].labels(controller_index, enclosure, slot).set(
+                    temperature
+                )
     except KeyError:
         pass
 
