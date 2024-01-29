@@ -340,27 +340,33 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
         attributes = info[drive_identifier + " Device attributes"]
         settings = info[drive_identifier + " Policies/Settings"]
 
-        metrics["pd_shield_counter"].labels(controller_index, enclosure, slot).set(
-            state["Shield Counter"]
-        )
-        metrics["pd_media_errors"].labels(controller_index, enclosure, slot).set(
-            state["Media Error Count"]
-        )
-        metrics["pd_other_errors"].labels(controller_index, enclosure, slot).set(
-            state["Other Error Count"]
-        )
-        metrics["pd_predictive_errors"].labels(controller_index, enclosure, slot).set(
-            state["Predictive Failure Count"]
-        )
+        if state["Shield Counter"] != "N/A":
+            metrics["pd_shield_counter"].labels(controller_index, enclosure, slot).set(
+                state["Shield Counter"]
+            )
+        if state["Media Error Count"] != "N/A":
+            metrics["pd_media_errors"].labels(controller_index, enclosure, slot).set(
+                state["Media Error Count"]
+            )
+        if state["Other Error Count"] != "N/A":
+            metrics["pd_other_errors"].labels(controller_index, enclosure, slot).set(
+                state["Other Error Count"]
+            )
+        if state["Predictive Failure Count"] != "N/A":
+            metrics["pd_predictive_errors"].labels(controller_index, enclosure, slot).set(
+                state["Predictive Failure Count"]
+            )
         metrics["pd_smart_alerted"].labels(controller_index, enclosure, slot).set(
             state["S.M.A.R.T alert flagged by drive"] == "Yes"
         )
-        metrics["pd_link_speed"].labels(controller_index, enclosure, slot).set(
-            attributes["Link Speed"].split(".")[0]
-        )
-        metrics["pd_device_speed"].labels(controller_index, enclosure, slot).set(
-            attributes["Device Speed"].split(".")[0]
-        )
+        if attributes["Link Speed"] != "Unknown":
+            metrics["pd_link_speed"].labels(controller_index, enclosure, slot).set(
+                attributes["Link Speed"].split(".")[0]
+            )
+        if attributes["Device Speed"] != "Unknown":
+            metrics["pd_device_speed"].labels(controller_index, enclosure, slot).set(
+                attributes["Device Speed"].split(".")[0]
+            )
         metrics["pd_commissioned_spare"].labels(controller_index, enclosure, slot).set(
             settings["Commissioned Spare"] == "Yes"
         )
@@ -383,7 +389,7 @@ def create_metrics_of_physical_drive(physical_drive, detailed_info_array, contro
             attributes["SN"].strip(),
         ).set(1)
 
-        if "Drive Temperature" in state:
+        if "Drive Temperature" in state and state["Drive Temperature"] != "N/A":
             metrics["pd_temp"].labels(controller_index, enclosure, slot).set(
                 state["Drive Temperature"].split("C")[0].strip()
             )
