@@ -79,20 +79,10 @@ metrics = {
         "MegaRAID CacheVault temperature",
         ["controller", "cvidx"], namespace=namespace, registry=registry,
     ),
-    "cv_optimal": Gauge(
-        "cv_optimal",
-        "MegaRAID CacheVault is Optimal",
-        ["controller", "cvidx"], namespace=namespace, registry=registry,
-    ),
-    "cv_degraded": Gauge(
-        "cv_degraded",
-        "MegaRAID CacheVault is Degraded",
-        ["controller", "cvidx"], namespace=namespace, registry=registry,
-    ),
-    "cv_failed": Gauge(
-        "cv_failed",
-        "MegaRAID CacheVault is Degraded",
-        ["controller", "cvidx"], namespace=namespace, registry=registry,
+    "cv_state": Gauge(
+        "cv_state",
+        "MegaRAID CacheVault state",
+        ["controller", "cvidx", "state"], namespace=namespace, registry=registry,
     ),
     "ctrl_sched_patrol_read": Gauge(
         "scheduled_patrol_read",
@@ -292,13 +282,13 @@ def handle_megaraid_controller(response):
                 cvinfo["Temp"].replace("C", "")
             )
         if "State" in cvinfo:
-            metrics["cv_optimal"].labels(controller_index, cvidx).set(
+            metrics["cv_state"].labels(controller_index, cvidx, "optimal").set(
                 cvinfo["State"] == "Optimal"
             )
-            metrics["cv_degraded"].labels(controller_index, cvidx).set(
+            metrics["cv_state"].labels(controller_index, cvidx, "degraded").set(
                 cvinfo["State"] == "Degraded"
             )
-            metrics["cv_failed"].labels(controller_index, cvidx).set(
+            metrics["cv_state"].labels(controller_index, cvidx, "failed").set(
                 cvinfo["State"] == "Failed"
             )
 
