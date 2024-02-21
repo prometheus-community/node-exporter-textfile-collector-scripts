@@ -1,0 +1,26 @@
+  pool: pool0
+ state: ONLINE
+  scan: scrub repaired 0B in 06:58:02 with 0 errors on Sun Nov 12 07:22:03 2023
+config:
+
+	NAME                                      STATE     READ WRITE CKSUM
+	pool0                                     ONLINE       0     0     0
+	  raidz1-0                                ONLINE       0     0     0
+	    ata-TOSHIBA_MG09ACA18TE_82X0A0QMFJDH  ONLINE       0     0     0
+	    ata-TOSHIBA_MG09ACA18TE_82J0A00FFJDH  ONLINE       0     0     0
+	    ata-TOSHIBA_MG09ACA18TE_82X0A0QPFJDH  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: pool1
+ state: ONLINE
+  scan: scrub repaired 1M in 00:04:45 with 0 errors on Sun Nov 12 00:28:47 2023
+config:
+
+	NAME                                                  STATE     READ WRITE CKSUM
+	pool1                                                 ONLINE       0     0     0
+	  mirror-0                                            ONLINE       0     0     0
+	    nvme-Samsung_SSD_980_500GB_S64DNL0T824602E-part1  ONLINE       0     0     0
+	    nvme-Samsung_SSD_980_500GB_S64DNL0T824555Z-part1  ONLINE       0     0     0
+
+errors: No known data errors
