@@ -89,13 +89,16 @@ def _write_autoremove_pending(registry, cache):
 def _write_cache_timestamps(registry):
     g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
     apt_pkg.init_config()
-    if apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists"):
+    if (
+        apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists") and
+        os.path.isfile("/var/lib/apt/periodic/update-success-stamp")
+    ):
         # if we run updates automatically with APT::Periodic, we can
-        # check this timestamp file
+        # check this timestamp file if it exists
         stamp_file = "/var/lib/apt/periodic/update-success-stamp"
     else:
-        # if not, let's just fallback on the lists directory
-        stamp_file = '/var/lib/apt/lists'
+        # if not, let's just fallback on the partial file of the lists directory
+        stamp_file = '/var/lib/apt/lists/partial'
     try:
         g.set(os.stat(stamp_file).st_mtime)
     except OSError:
