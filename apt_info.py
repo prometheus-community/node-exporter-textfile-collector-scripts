@@ -70,7 +70,8 @@ def _write_pending_upgrades(registry, cache):
 
 def _write_held_upgrades(registry, cache):
     held_candidates = {
-        p.candidate for p in cache if p.is_upgradable and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
+        p.candidate for p in cache 
+        if p.is_upgradable and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
     }
     upgrade_list = _convert_candidates_to_upgrade_infos(held_candidates)
 
