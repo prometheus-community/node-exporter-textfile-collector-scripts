@@ -12,7 +12,7 @@ import subprocess
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 
-DEVICE_PATTERN = re.compile(r"^\[([^\]]+)\]\.(\S+)\s+(\d+)$", re.MULTILINE)
+DEVICE_PATTERN = re.compile(r"^\[([^\]]+)\]\.(\S+)\s+(\d+)$")
 
 
 def get_btrfs_mount_points():
