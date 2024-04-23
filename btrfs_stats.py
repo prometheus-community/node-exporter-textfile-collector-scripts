@@ -12,6 +12,9 @@ import subprocess
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 
+DEVICE_PATTERN = re.compile(r"^\[([^\]]+)\]\.(\S+)\s+(\d+)$")
+
+
 def get_btrfs_mount_points():
     """List all btrfs mount points.
 
@@ -47,7 +50,7 @@ def get_btrfs_errors(mountpoint):
             continue
         # Sample line:
         # [/dev/vdb1].flush_io_errs   0
-        m = re.search(r"^\[([^\]]+)\]\.(\S+)\s+(\d+)$", line.decode("utf-8"))
+        m = DEVICE_PATTERN.match(line.decode("utf-8"))
         if not m:
             raise RuntimeError("unexpected output from btrfs: '%s'" % line)
         yield m.group(1), m.group(2), int(m.group(3))
