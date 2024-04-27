@@ -52,12 +52,8 @@ def _convert_candidates_to_upgrade_infos(candidates):
 
 
 def _write_pending_upgrades(registry, cache):
-    # Discount any changes that apply to packages that aren't installed (e.g.
-    # count an upgrade to package A that adds a new dependency on package B as
-    # only one upgrade, not two). See the following issue for more details:
-    # https://github.com/prometheus-community/node-exporter-textfile-collector-scripts/issues/85
     candidates = {
-        p.candidate for p in cache if p.is_installed and p.is_upgradable
+        p.candidate for p in cache if p.is_upgradable
     }
     upgrade_list = _convert_candidates_to_upgrade_infos(candidates)
 
