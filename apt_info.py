@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
-#
-# Description: Expose metrics from apt. This is inspired by and
-# intended to be a replacement for the original apt.sh.
-#
-# This script deliberately does *not* update the apt cache. You need
-# something else to run `apt update` regularly for the metrics to be
-# up to date. This can be done in numerous ways, but the canonical way
-# is to use the normal `APT::Periodic::Update-Package-Lists`
-# setting.
-#
-# This, for example, will enable a nightly job that runs `apt update`:
-#
-#     echo 'APT::Periodic::Update-Package-Lists "1";' > /etc/apt/apt.conf.d/99_auto_apt_update.conf
-#
-# See /usr/lib/apt/apt.systemd.daily for details.
-#
-# Dependencies: python3-apt, python3-prometheus-client
-#
-# Authors: Kyle Fazzari <kyrofa@ubuntu.com>
-#          Daniel Swarbrick <dswarbrick@debian.org>
+
+"""
+Description: Expose metrics from apt. This is inspired by and
+intended to be a replacement for the original apt.sh.
+
+This script deliberately does *not* update the apt cache. You need
+something else to run `apt update` regularly for the metrics to be
+up to date. This can be done in numerous ways, but the canonical way
+is to use the normal `APT::Periodic::Update-Package-Lists`
+setting.
+
+This, for example, will enable a nightly job that runs `apt update`:
+
+    echo 'APT::Periodic::Update-Package-Lists "1";' > /etc/apt/apt.conf.d/99_auto_apt_update.conf
+
+See /usr/lib/apt/apt.systemd.daily for details.
+
+Dependencies: python3-apt, python3-prometheus-client
+
+Authors: Kyle Fazzari <kyrofa@ubuntu.com>
+         Daniel Swarbrick <dswarbrick@debian.org>
+"""
 
 import apt
 import apt_pkg
