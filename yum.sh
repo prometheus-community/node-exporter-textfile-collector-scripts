@@ -32,17 +32,17 @@ upgrades=$(check_upgrades)
 
 echo '# HELP yum_upgrades_pending Yum package pending updates by origin.'
 echo '# TYPE yum_upgrades_pending gauge'
-if [[ -n "${upgrades}" ]] ; then
+if [[ -n "${upgrades}" ]]; then
   echo "${upgrades}"
 else
   echo 'yum_upgrades_pending{origin=""} 0'
 fi
 
 # If yum-utils/dnf-utils is not installed then we skip rendering this metric
-if [[ -x /bin/needs-restarting ]] ; then
+if [[ -x /bin/needs-restarting ]]; then
   echo '# HELP node_reboot_required Node reboot is required for software updates.'
   echo '# TYPE node_reboot_required gauge'
-  if /bin/needs-restarting -r  > /dev/null 2>&1 ; then
+  if /bin/needs-restarting -r >/dev/null 2>&1; then
     echo 'node_reboot_required 0'
   else
     echo 'node_reboot_required 1'
