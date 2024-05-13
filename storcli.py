@@ -251,7 +251,7 @@ def handle_sas_controller(response):
 def handle_megaraid_controller(response):
     controller_index = response["Basics"]["Controller"]
 
-    if response["Status"]["BBU Status"] != "NA":
+    if "BBU Status" in response["Status"] and response["Status"]["BBU Status"] != "NA":
         # BBU Status Optimal value is 0 for normal, 8 for charging.
         metrics["bbu_healthy"].labels(controller_index).set(
             response["Status"]["BBU Status"] in [0, 8, 4096]
