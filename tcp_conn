@@ -1,0 +1,66 @@
+#!/bin/sh
+
+# Expose total number of established TCP connections for the specified port.
+#
+# Usage: tcp_conn <-s|-d> port
+#
+# -s source port
+# -d destination port
+# Example : add this to crontab:
+#
+# * * * * *   root tcp_conn -d 8080 | sponge /var/lib/prometheus/node-exporter/tcp_conn.prom
+#
+# This will expose every minute total number of established TCP connections with `8080` as destination port
+#
+# Author: Badreddin Aboubakr <badreddin.aboubakr@cloud.ionos.com>
+#         Daniel Swarbrick <daniel.swarbrick@cloud.ionos.com>
+
+set -e
+
+while getopts "s:d:" opt; do
+  case $opt in
+    s)
+      sport=$OPTARG
+      ;;
+    d)
+      dport=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -n "$sport" ] && [ -n "$dport" ]; then
+  echo "sport and dport may not be specified simultaneously"
+  exit 1
+fi
+
+if [ -z "$sport" ] && [ -z "$dport" ]; then
+  echo "sport or dport should be specified"
+  exit 1
+fi
+
+cmd="ss -tH state ESTABLISHED \("
+
+if [ -n "$sport" ]; then
+  cmd="$cmd sport = $sport"
+  port=$sport
+  type="source"
+elif [ -n "$dport" ]; then
+  cmd="$cmd dport = $dport"
+  port=$dport
+  type="destination"
+fi
+
+cmd="$cmd \)"
+conn="$($cmd | wc -l)"
+
+echo "# HELP node_tcp_connections_established Total number of established TCP connections for the specified port"
+echo "# TYPE node_tcp_connections_established gauge"
+echo "node_tcp_connections_established{port=\"$port\", type=\"$type\"} $conn"
