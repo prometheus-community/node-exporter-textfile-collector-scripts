@@ -2,10 +2,10 @@
 #
 # Expose cronjob exit status
 #
-# Usage: <command> ; cronjob "<description>" $?
+# Usage: <command> ; cronjob_status "<description>" $?
 #
 # Example crontab entry:
-# * * * * * echo "Hello world!"; cronjob "greeting" $? | sponge /var/lib/prometheus/node-exporter/cronjob_greeting.prom
+# * * * * * echo "Hello world!"; cronjob_status "greeting" $? | sponge /var/lib/prometheus/node-exporter/cronjob_greeting.prom
 #
 # Inspired by: https://janikvonrotz.ch/2020/09/07/monitor-cron-jobs-with-prometheus-grafana-and-node-exporter/
 #
