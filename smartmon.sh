@@ -16,7 +16,7 @@ export LC_ALL=C
 
 parse_smartctl_attributes_awk="$(
   cat <<'SMARTCTLAWK'
-$1 ~ /^ *[0-9]+$/ && $2 ~ /^[a-zA-Z0-9_-]+$/ {
+$1 ~ /^ *[0-9]+$/ && $2 ~ /^[a-zA-Z0-9_-]+.*/ {
   gsub(/-/, "_");
   printf "%s_value{%s,smart_id=\"%s\"} %d\n", $2, labels, $1, $4
   printf "%s_worst{%s,smart_id=\"%s\"} %d\n", $2, labels, $1, $5
@@ -69,6 +69,7 @@ wear_leveling_count
 workld_host_reads_perc
 workld_media_wear_indic
 workload_minutes
+drive_life_remaining%
 SMARTMONATTRS
 )"
 smartmon_attrs="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
@@ -163,7 +164,7 @@ OUTPUTAWK
 
 format_output() {
   sort |
-    awk -F'{' "${output_format_awk}"
+    awk -F'{' "${output_format_awk} |sed -e 's/%//g"
 }
 
 smartctl_version="$(/usr/sbin/smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
