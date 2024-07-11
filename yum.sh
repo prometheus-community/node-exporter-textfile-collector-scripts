@@ -42,12 +42,12 @@ echo '# TYPE yum_upgrades_pending gauge'
 if [[ -n "${upgrades}" ]]; then
   echo "${upgrades}"
 else
-  echo 'yum_upgrades_pending{origin="",category=\"all\"} 0'
+  echo 'yum_upgrades_pending{origin="",category="all"} 0'
 fi
 if [[ -n "${security_upgrades}" ]]; then
   echo "${security_upgrades}"
 else
-  echo 'yum_upgrades_pending{origin="",category=\"security\"} 0'
+  echo 'yum_upgrades_pending{origin="",category="security"} 0'
 fi
 
 
