@@ -43,6 +43,7 @@ load_cycle_count
 media_wearout_indicator
 nand_writes_1gib
 offline_uncorrectable
+percent_lifetime_remain
 power_cycle_count
 power_on_hours
 program_fail_cnt_total
