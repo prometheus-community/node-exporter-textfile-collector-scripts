@@ -62,7 +62,7 @@ BEGIN {
 }
 
 NR {
-    # Extract and format repository, patch_name, severity, category, interactive and status
+    # Extract and format repository, patch_name, category, severity, interactive and status
     repository = $1
     patch_name = $2
     category = $3
@@ -80,7 +80,7 @@ NR {
 
     # Print the output in the required format
     if (output_format == "-l" || output_format == "--less")
-      printf "zypper_patch_pending{repository=\"%s\",patch-name=\"%s\",category=\"%s\",severity=\"%s\",interactive=\"%s\",status=\"%s\"} 1\n", repository, patch_name, category, severity, interactive, status
+      printf "zypper_patch_pending{repository=\"%s\",patch-name=\"%s\",interactive=\"%s\",status=\"%s\"} 1\n", repository, patch_name, interactive, status
     else if (output_format == "-m" || output_format == "--more")
       printf "zypper_patch_pending{repository=\"%s\",patch-name=\"%s\",category=\"%s\",severity=\"%s\",interactive=\"%s\",status=\"%s\"} 1\n", repository, patch_name, category, severity, interactive, status
 }
@@ -128,7 +128,7 @@ get_updates_sum() {
 
 get_pending_patches() {
   if [ -z "$1" ]; then 
-    echo 'zypper_update_pending{repository="",package-name="",available-version=""} 0'
+    echo 'zypper_patch_pending{repository="",patch-name="",category="",severity="",interactive="",status""} 0'
   else
     echo "$1" |
       awk -v output_format=$2 "$filter_pending_patches"
@@ -210,7 +210,7 @@ main() {
   fi
 
   zypper_lu_quiet_tail_n3="$(/usr/bin/zypper --quiet lu | tail -n +3)"
-  zypper_lp_quiet_tail_n3="$(/usr/bin/zypper --quiet lp | tail -n +3)"
+  zypper_lp_quiet_tail_n3="$(/usr/bin/zypper --quiet lp | sed -E '/(^$|^Repository|^---)/d'| sed '/|/!d')"
   zypper_version="$(/usr/bin/zypper -V)"
   zypper_orphan_packages="$(zypper --quiet pa --orphaned | tail -n +3)"
 
