@@ -5,7 +5,7 @@
 # Contributer: Gabriele Puliti <gabriele.puliti@suse.com>
 # Based on yum.sh by Slawomir Gonet <slawek@otwiera.cz>
 
-set -o errexit # exit on first error
+#set -o errexit # exit on first error, doesn't work on all test systems
 set -o nounset # fail if unset variables
 set -o pipefail # reflect exit status
 
@@ -141,7 +141,7 @@ get_pending_security_patches() {
       echo "0"
     else
       echo "$1" | 
-        grep security |
+        grep "| security" |
         wc -l
     fi
   } |
@@ -154,7 +154,7 @@ get_pending_security_important_patches() {
       echo "0"
     else
       echo "$1" | 
-        grep security |
+        grep "| security" |
         grep important |
         wc -l
     fi
