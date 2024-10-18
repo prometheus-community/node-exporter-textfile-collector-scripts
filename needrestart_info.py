@@ -33,7 +33,7 @@ class KernelStatus(Enum):
 class MicroCodeStatus(Enum):
     UNKNOWN = 0
     CURRENT = 1
-    OBSELETE = 2
+    OBSOLETE = 2
 
 
 class NeedRestartData:
