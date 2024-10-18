@@ -145,10 +145,17 @@ def write_sessions(registry, needrestart_data):
 def main():
     registry = CollectorRegistry()
 
-    needrestart_output = subprocess.run(
-        ["needrestart", "-b"], capture_output=True, text=True
-    ).stdout
-    needrestart_data = NeedRestartData(needrestart_output)
+    try:
+        needrestart_output = subprocess.run(
+            ["needrestart", "-b"], capture_output=True, text=True, check=True
+        ).stdout
+        needrestart_data = NeedRestartData(needrestart_output)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing needrestart:\n{e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred:\n{e}")
+        sys.exit(1)
 
     write_timestamp(registry, needrestart_data)
     write_kernel(registry, needrestart_data)
