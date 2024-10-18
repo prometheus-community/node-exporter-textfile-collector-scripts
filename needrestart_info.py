@@ -79,7 +79,7 @@ class NeedRestartData:
 
 def write_timestamp(registry, needrestart_data):
     g = Gauge(
-        "needrestart_timestamp",
+        "needrestart_timestamp_seconds",
         "information about the version and when it was last run",
         labelnames=["version"],
         registry=registry,
@@ -90,7 +90,7 @@ def write_timestamp(registry, needrestart_data):
 def write_kernel(registry, needrestart_data):
     if needrestart_data.kernel_status:
         e = Gauge(
-            "needrestart_kernel_status",
+            "needrestart_kernel_status_info",
             "information about the kernel status",
             labelnames=["current", "expected"],
             registry=registry,
@@ -104,7 +104,7 @@ def write_kernel(registry, needrestart_data):
 def write_microcode(registry, needrestart_data):
     if needrestart_data.microcode_status:
         e = Gauge(
-            "needrestart_microcode_status",
+            "needrestart_microcode_status_info",
             "information about the microcode status",
             labelnames=["current", "expected"],
             registry=registry,
@@ -117,7 +117,7 @@ def write_microcode(registry, needrestart_data):
 
 def write_services(registry, needrestart_data):
     g = Gauge(
-        "needrestart_services_count",
+        "needrestart_services_total",
         "number of services requiring a restart",
         registry=registry,
     )
@@ -126,7 +126,7 @@ def write_services(registry, needrestart_data):
 
 def write_containers(registry, needrestart_data):
     g = Gauge(
-        "needrestart_containers_count",
+        "needrestart_containers_total",
         "number of containers requiring a restart",
         registry=registry,
     )
@@ -135,7 +135,7 @@ def write_containers(registry, needrestart_data):
 
 def write_sessions(registry, needrestart_data):
     g = Gauge(
-        "needrestart_sessions_count",
+        "needrestart_sessions_total",
         "number of sessions requiring a restart",
         registry=registry,
     )
