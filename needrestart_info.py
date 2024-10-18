@@ -11,6 +11,7 @@ Dependencies: python >= 3.5, python3-prometheus-client, needrestart
 Authors: RomainMou
 """
 
+import sys
 import time
 import subprocess
 from collections import Counter
