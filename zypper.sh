@@ -257,7 +257,7 @@ main() {
   get_zypper_version "$zypper_version"
 
   echo '# HELP zypper_package_orphan zypper packages with no update source (orphaned) '
-  echo '# TYPE zypper_package_orphan gauges'
+  echo '# TYPE zypper_package_orphan gauge'
   get_orphan_packages "$zypper_orphan_packages"
 }
 
