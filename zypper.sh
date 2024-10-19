@@ -128,7 +128,7 @@ get_updates_sum() {
 
 get_pending_patches() {
   if [ -z "$1" ]; then 
-    echo 'zypper_patch_pending{repository="",patch-name="",category="",severity="",interactive="",status""} 0'
+    echo 'zypper_patch_pending{repository="",patch-name="",category="",severity="",interactive="",status=""} 0'
   else
     echo "$1" |
       awk -v output_format=$2 "$filter_pending_patches"

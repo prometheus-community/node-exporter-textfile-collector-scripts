@@ -1,0 +1,14 @@
+Repository                                                   | Name                        | Category    | Severity  | Interactive | Status | Summary
+-------------------------------------------------------------+-----------------------------+-------------+-----------+-------------+--------+-------------------------------------------------
+Update repository of openSUSE Backports                      | openSUSE-2024-254           | security    | important | ---         | needed | Security update for chromium, gn, rust-bindgen
+Main Update Repository                                       | openSUSE-2024-256           | recommended | moderate  | ---         | needed | Recommended update for yast2-theme
+Update repository of openSUSE Backports                      | openSUSE-2024-258           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-267           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-278           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-287           | recommended | moderate  | ---         | needed | Recommended update for cockpit, cockpit-machines
+Update repository of openSUSE Backports                      | openSUSE-2024-302           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-311           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-314           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-327           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-335           | security    | important | ---         | needed | Security update for chromium
+Update repository of openSUSE Backports                      | openSUSE-2024-337           | security    | important | ---         | needed | Security update for chromium
