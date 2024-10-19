@@ -253,7 +253,7 @@ main() {
   fi
 
   echo '# HELP zypper_version zypper installed package version'
-  echo '# TYPE zypper_version gauges'
+  echo '# TYPE zypper_version gauge'
   get_zypper_version "$zypper_version"
 
   echo '# HELP zypper_package_orphan zypper packages with no update source (orphaned) '
