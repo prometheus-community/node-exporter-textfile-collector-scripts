@@ -28,6 +28,8 @@ import collections
 import os
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
+hostPrefix = os.environ.get("APT_HOSTPREFIX","/")
+
 _UpgradeInfo = collections.namedtuple("_UpgradeInfo", ["labels", "count"])
 
 
@@ -109,11 +111,11 @@ def _write_cache_timestamps(registry):
 def _write_reboot_required(registry):
     g = Gauge('node_reboot_required', "Node reboot is required for software updates.",
               registry=registry)
-    g.set(int(os.path.isfile('/run/reboot-required')))
+    g.set(int(os.path.isfile(os.path.join(hostPrefix,'run/reboot-required'))))
 
 
 def _main():
-    cache = apt.cache.Cache()
+    cache = apt.cache.Cache(rootdir=hostPrefix)
 
     registry = CollectorRegistry()
     _write_pending_upgrades(registry, cache)
