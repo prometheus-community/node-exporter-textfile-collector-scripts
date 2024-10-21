@@ -42,6 +42,7 @@ smart_attributes_whitelist = (
     'host_writes_32mib',
     'load_cycle_count',
     'media_wearout_indicator',
+    'percent_lifetime_remain',
     'wear_leveling_count',
     'nand_writes_1gib',
     'offline_uncorrectable',
