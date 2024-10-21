@@ -152,10 +152,10 @@ def main():
         ).stdout
         needrestart_data = NeedRestartData(needrestart_output)
     except subprocess.CalledProcessError as e:
-        print(f"Error executing needrestart:\n{e}")
+        print(f"Error executing needrestart:\n{e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred:\n{e}")
+        print(f"An unexpected error occurred:\n{e}", file=sys.stderr)
         sys.exit(1)
 
     write_timestamp(registry, needrestart_data)
