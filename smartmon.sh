@@ -35,6 +35,7 @@ end_to_end_error
 erase_fail_count
 g_sense_error_rate
 hardware_ecc_recovered
+helium_level
 host_reads_32mib
 host_reads_mib
 host_writes_32mib
