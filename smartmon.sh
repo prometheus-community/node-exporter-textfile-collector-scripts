@@ -171,7 +171,9 @@ smartctl_version="$(/usr/sbin/smartctl -V | awk 'NR==1 && $1 == "smartctl" {prin
 echo "smartctl_version{version=\"${smartctl_version}\"} 1" | format_output
 
 # Exit if "smartctl" version is lower 6
-[[ ${smartctl_version%.*} -lt 6 ]] && exit 0
+if [[ ${smartctl_version%.*} -lt 6 ]]; then
+  exit 0
+fi
 
 device_list="$(/usr/sbin/smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}')"
 
