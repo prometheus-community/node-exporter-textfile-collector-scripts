@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
 """
-Description: #TODO: short version
+Description: Expose metrics from zypper updates and patches.
 
-#TODO: long version
+The script can take 2 arguments: `--more` and `--less`, the selection basically change how many informations are printed.
 
-#TODO: example
+The `--more` is by default.
 
-    #TODO: code of the example
+Examples:
 
-#TODO: additional information
-
-Dependencies: #TODO: add if needed
+    zypper.py --less
+    zypper.py -m
 
 Authors: Gabriele Puliti <gabriele.puliti@suse.com>
          Bernd Shubert <bschubert@suse.com>
