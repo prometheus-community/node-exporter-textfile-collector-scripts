@@ -3,7 +3,8 @@
 """
 Description: Expose metrics from zypper updates and patches.
 
-The script can take 2 arguments: `--more` and `--less`, the selection basically change how many informations are printed.
+The script can take 2 arguments: `--more` and `--less`. 
+The selection of the arguments change how many informations are going to be printed.
 
 The `--more` is by default.
 
@@ -22,6 +23,7 @@ import os
 
 from collections.abc import Sequence
 
+
 def __print_package_info(package, fields, prefix, filters=None):
     filters = filters or {}
     check = all(package.get(k) == v for k, v in filters.items())
@@ -29,6 +31,7 @@ def __print_package_info(package, fields, prefix, filters=None):
     if check:
         field_str = ",".join([f'{name}="{package[field]}"' for field, name in fields])
         print(f"{prefix}{{{field_str}}} 1")
+
 
 def __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters=None):
     if all_info:
@@ -43,6 +46,7 @@ def __print_pending_data(data, all_info, fields_more, fields_less, prefix, filte
         for package in data:
             __print_package_info(package, fields, prefix, filters)
 
+
 def print_pending_updates(data, all_info, filters=None):
     fields_more = [("Repository", "repository"), ("Name", "package-name"),
                    ("Available Version", "available-version")]
@@ -50,6 +54,7 @@ def print_pending_updates(data, all_info, filters=None):
     prefix = "zypper_update_pending"
 
     __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters)
+
 
 def print_pending_patches(data, all_info, filters=None):
     fields_more = [
@@ -64,6 +69,7 @@ def print_pending_patches(data, all_info, filters=None):
 
     __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters)
 
+
 def print_orphaned_packages(data):
     fields = [
         ("Name", "package"), ("Version", "installed-version")
@@ -71,6 +77,7 @@ def print_orphaned_packages(data):
     prefix = "zypper_package_orphan"
 
     __print_pending_data(data, True, fields, None, prefix, None)
+
 
 def __print_data_sum(data, prefix, filters=None):
     filters = filters or {}
@@ -84,13 +91,16 @@ def __print_data_sum(data, prefix, filters=None):
                 gauge += 1
         print(prefix + "{total} " + str(gauge))
 
+
 def print_updates_sum(data, filters=None):
     prefix = "zypper_updates_pending_total"
 
     __print_data_sum(data, prefix, filters)
 
+
 def print_patches_sum(data, prefix="zypper_patches_pending_total", filters=None):
     __print_data_sum(data, prefix, filters)
+
 
 def print_reboot_required():
     needs_restarting_path = '/usr/bin/needs-restarting'
@@ -103,12 +113,14 @@ def print_reboot_required():
             stderr=subprocess.DEVNULL,
             check=False)
 
-        print('# HELP node_reboot_required Node require reboot to activate installed updates or patches. (0 = not needed, 1 = needed)')
+        print('# HELP node_reboot_required Node require reboot to activate installed updates or '\
+            'patches. (0 = not needed, 1 = needed)')
         print('# TYPE node_reboot_required gauge')
         if result.returncode == 0:
             print('node_reboot_required 0')
         else:
             print('node_reboot_required 1')
+
 
 def print_zypper_version():
     result = subprocess.run(
@@ -136,6 +148,7 @@ def __extract_lu_data(raw: str):
 
     return extracted_data
 
+
 def __extract_lp_data(raw: str):
     raw_lines = raw.splitlines()[2:]
     extracted_data = []
@@ -154,6 +167,7 @@ def __extract_lp_data(raw: str):
 
     return extracted_data
 
+
 def __extract_orphaned_data(raw: str):
     raw_lines = raw.splitlines()[2:]
     extracted_data = []
@@ -167,6 +181,7 @@ def __extract_orphaned_data(raw: str):
             })
 
     return extracted_data
+
 
 def __parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -187,6 +202,7 @@ def __parse_arguments(argv):
     )
     parser.set_defaults(all_info=True)
     return parser.parse_args(argv)
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = __parse_arguments(argv)
@@ -212,7 +228,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     ).stdout.decode('utf-8')
     data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned)
 
-    print('# HELP zypper_update_pending zypper package update available from repository. (0 = not available, 1 = available)')
+    print('# HELP zypper_update_pending zypper package update available from repository. (0 = not '\
+          'available, 1 = available)')
     print('# TYPE zypper_update_pending gauge')
     print_pending_updates(data_zypper_lu, args.all_info)
 
@@ -220,7 +237,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print('# TYPE zypper_updates_pending_total counter')
     print_updates_sum(data_zypper_lu)
 
-    print('# HELP zypper_patch_pending zypper patch available from repository. (0 = not available, 1 = available)')
+    print('# HELP zypper_patch_pending zypper patch available from repository. (0 = not available '\
+          ', 1 = available)')
     print('# TYPE zypper_patch_pending gauge')
     print_pending_patches(data_zypper_lp, args.all_info)
 
@@ -228,19 +246,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     print('# TYPE zypper_patches_pending_total counter')
     print_patches_sum(data_zypper_lp)
 
-    print('# HELP zypper_patches_pending_security_total zypper patches available with category security total')
+    print('# HELP zypper_patches_pending_security_total zypper patches available with category '\
+          'security total')
     print('# TYPE zypper_patches_pending_security_total counter')
     print_patches_sum(data_zypper_lp,
                       prefix="zypper_patches_pending_security_total",
-                      filters={'Category':'security'})
+                      filters={'Category': 'security'})
 
-    print('# HELP zypper_patches_pending_security_important_total zypper patches available with category security severity important total')
+    print('# HELP zypper_patches_pending_security_important_total zypper patches available with '\
+          'category security severity important total')
     print('# TYPE zypper_patches_pending_security_important_total counter')
     print_patches_sum(data_zypper_lp,
                       prefix="zypper_patches_pending_security_important_total",
-                      filters={'Category':'security', 'Severity': 'important'})
+                      filters={'Category': 'security', 'Severity': 'important'})
 
-    print('# HELP zypper_patches_pending_reboot_total zypper patches available which require reboot total')
+    print('# HELP zypper_patches_pending_reboot_total zypper patches available which require '\
+          'reboot total')
     print('# TYPE zypper_patches_pending_reboot_total counter')
     print_patches_sum(data_zypper_lp,
                       prefix="zypper_patches_pending_reboot_total",
