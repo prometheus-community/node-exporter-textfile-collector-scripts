@@ -3,7 +3,7 @@
 """
 Description: Expose metrics from zypper updates and patches.
 
-The script can take 2 arguments: `--more` and `--less`. 
+The script can take 2 arguments: `--more` and `--less`.
 The selection of the arguments change how many informations are going to be printed.
 
 The `--more` is by default.
@@ -113,8 +113,8 @@ def print_reboot_required():
             stderr=subprocess.DEVNULL,
             check=False)
 
-        print('# HELP node_reboot_required Node require reboot to activate installed updates or '\
-            'patches. (0 = not needed, 1 = needed)')
+        print('# HELP node_reboot_required Node require reboot to activate installed updates or '
+              'patches. (0 = not needed, 1 = needed)')
         print('# TYPE node_reboot_required gauge')
         if result.returncode == 0:
             print('node_reboot_required 0')
@@ -228,7 +228,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ).stdout.decode('utf-8')
     data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned)
 
-    print('# HELP zypper_update_pending zypper package update available from repository. (0 = not '\
+    print('# HELP zypper_update_pending zypper package update available from repository. (0 = not '
           'available, 1 = available)')
     print('# TYPE zypper_update_pending gauge')
     print_pending_updates(data_zypper_lu, args.all_info)
@@ -237,7 +237,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print('# TYPE zypper_updates_pending_total counter')
     print_updates_sum(data_zypper_lu)
 
-    print('# HELP zypper_patch_pending zypper patch available from repository. (0 = not available '\
+    print('# HELP zypper_patch_pending zypper patch available from repository. (0 = not available '
           ', 1 = available)')
     print('# TYPE zypper_patch_pending gauge')
     print_pending_patches(data_zypper_lp, args.all_info)
@@ -246,21 +246,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     print('# TYPE zypper_patches_pending_total counter')
     print_patches_sum(data_zypper_lp)
 
-    print('# HELP zypper_patches_pending_security_total zypper patches available with category '\
+    print('# HELP zypper_patches_pending_security_total zypper patches available with category '
           'security total')
     print('# TYPE zypper_patches_pending_security_total counter')
     print_patches_sum(data_zypper_lp,
                       prefix="zypper_patches_pending_security_total",
                       filters={'Category': 'security'})
 
-    print('# HELP zypper_patches_pending_security_important_total zypper patches available with '\
+    print('# HELP zypper_patches_pending_security_important_total zypper patches available with '
           'category security severity important total')
     print('# TYPE zypper_patches_pending_security_important_total counter')
     print_patches_sum(data_zypper_lp,
                       prefix="zypper_patches_pending_security_important_total",
                       filters={'Category': 'security', 'Severity': 'important'})
 
-    print('# HELP zypper_patches_pending_reboot_total zypper patches available which require '\
+    print('# HELP zypper_patches_pending_reboot_total zypper patches available which require '
           'reboot total')
     print('# TYPE zypper_patches_pending_reboot_total counter')
     print_patches_sum(data_zypper_lp,

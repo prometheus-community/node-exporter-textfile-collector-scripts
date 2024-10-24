@@ -10,7 +10,8 @@ set -o nounset # fail if unset variables
 set -o pipefail # reflect exit status
 
 if [[ "${1-}" =~ ^-*h(elp)?$ ]]; then
-  echo """Usage: zypper.sh [OPTION]
+  # shellcheck disable=SC1078
+  echo "Usage: zypper.sh [OPTION]
 This is an script to extract monitoring values for the zypper package
 
 It work only with root permission!
@@ -21,9 +22,8 @@ Available options:
 
 Examples:
  zypper.sh --less
- zypper.sh -m
-"""
-  exit
+ zypper.sh -m"
+  exit 0
 fi
 
 # Check if we are root
@@ -32,6 +32,7 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# shellcheck disable=SC2016
 filter_pending_updates='
 BEGIN {
     FS=" \\| ";  # set field separator to " | "
@@ -56,6 +57,7 @@ NR {
 }
 '
 
+# shellcheck disable=SC2016
 filter_pending_patches='
 BEGIN {
     FS=" \\| ";  # set field separator to " | "
@@ -86,6 +88,7 @@ NR {
 }
 '
 
+# shellcheck disable=SC2016
 filter_orphan_packages='
 BEGIN {
     FS=" \\| ";  # set field separator to " | "
@@ -107,10 +110,10 @@ NR {
 
 get_pending_updates() {
   if [ -z "$1" ]; then 
-    echo 'zypper_update_pending{repository="",package-name="",available-version=""} 0'
+    echo "zypper_update_pending{repository=\"\",package-name=\"\",available-version=\"\"} 0"
   else
     echo "$1" |
-      awk -v output_format=$2 "$filter_pending_updates" 
+      awk -v output_format="$2" "$filter_pending_updates" 
   fi
 }
 
@@ -128,10 +131,10 @@ get_updates_sum() {
 
 get_pending_patches() {
   if [ -z "$1" ]; then 
-    echo 'zypper_patch_pending{repository="",patch-name="",category="",severity="",interactive="",status=""} 0'
+    echo "zypper_patch_pending{repository=\"\",patch-name=\"\",category=\"\",severity=\"\",interactive=\"\",status=\"\"} 0"
   else
     echo "$1" |
-      awk -v output_format=$2 "$filter_pending_patches"
+      awk -v output_format="$2" "$filter_pending_patches"
   fi
 }
 
@@ -141,8 +144,7 @@ get_pending_security_patches() {
       echo "0"
     else
       echo "$1" | 
-        grep "| security" |
-        wc -l
+        grep -c "| security"
     fi
   } |
   awk '{print "zypper_patches_pending_security_total "$1}'
@@ -154,9 +156,7 @@ get_pending_security_important_patches() {
       echo "0"
     else
       echo "$1" | 
-        grep "| security" |
-        grep important |
-        wc -l
+        grep -c "| security.*important"
     fi
   } |
   awk '{print "zypper_patches_pending_security_important_total "$1}'
@@ -168,8 +168,7 @@ get_pending_reboot_patches() {
       echo "0"
     else
       echo "$1" | 
-        grep reboot | 
-        wc -l 
+        grep -c "reboot"
     fi
   } |
   awk '{print "zypper_patches_pending_reboot_total "$1}'
@@ -194,7 +193,7 @@ get_zypper_version() {
 
 get_orphan_packages() {
   if [ -z "$1" ]; then 
-    echo 'zypper_package_orphan{package="",installed-version=""} 0'
+    echo "zypper_package_orphan{package=\"\",installed-version=\"\"} 0"
   else
     echo "$1" |
       awk "$filter_orphan_packages"
