@@ -20,86 +20,84 @@ Authors: Gabriele Puliti <gabriele.puliti@suse.com>
 import argparse
 import subprocess
 import os
+import sys
 
 from collections.abc import Sequence
+from prometheus_client import CollectorRegistry, Gauge, Info, generate_latest
+
+REGISTRY = CollectorRegistry()
+NAMESPACE = "zypper"
 
 
-def __print_package_info(package, fields, prefix, filters=None):
+def __print_pending_data(data, fields, info, filters=None):
     filters = filters or {}
-    check = all(package.get(k) == v for k, v in filters.items())
-
-    if check:
-        field_str = ",".join([f'{name}="{package[field]}"' for field, name in fields])
-        print(f"{prefix}{{{field_str}}} 1")
-
-
-def __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters=None):
-    if all_info:
-        fields = fields_more
-    else:
-        fields = fields_less
 
     if len(data) == 0:
         field_str = ",".join([f'{name}=""' for _, name in fields])
-        print(f"{prefix}{{{field_str}}} 0")
+        info.info({field_str: '0'})
     else:
         for package in data:
-            __print_package_info(package, fields, prefix, filters)
+            check = all(package.get(k) == v for k, v in filters.items())
+            if check:
+                field_str = ",".join([f'{name}="{package[field]}"' for field, name in fields])
+                info.info({field_str: '1'})
 
 
 def print_pending_updates(data, all_info, filters=None):
-    fields_more = [("Repository", "repository"), ("Name", "package-name"),
+    if all_info:
+        fields = [("Repository", "repository"), ("Name", "package-name"),
                    ("Available Version", "available-version")]
-    fields_less = [("Repository", "repository"), ("Name", "package-name")]
+    else:
+        fields = [("Repository", "repository"), ("Name", "package-name")]
     prefix = "zypper_update_pending"
+    description = "zypper package update available from repository. (0 = not available, 1 = available)"
+    info = Info(prefix, description)
 
-    __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters)
+    __print_pending_data(data, fields, info, filters)
 
 
 def print_pending_patches(data, all_info, filters=None):
-    fields_more = [
-        ("Repository", "repository"), ("Name", "patch-name"), ("Category", "category"),
-        ("Severity", "severity"), ("Interactive", "interactive"), ("Status", "status")
-    ]
-    fields_less = [
-        ("Repository", "repository"), ("Name", "patch-name"),
-        ("Interactive", "interactive"), ("Status", "status")
-    ]
+    if all_info:
+        fields = [
+            ("Repository", "repository"), ("Name", "patch-name"), ("Category", "category"),
+            ("Severity", "severity"), ("Interactive", "interactive"), ("Status", "status")
+        ]
+    else:
+        fields = [
+            ("Repository", "repository"), ("Name", "patch-name"),
+            ("Interactive", "interactive"), ("Status", "status")
+        ]
     prefix = "zypper_patch_pending"
+    description = "zypper patch available from repository. (0 = not available , 1 = available)"
+    info = Info(prefix, description)
 
-    __print_pending_data(data, all_info, fields_more, fields_less, prefix, filters)
+    __print_pending_data(data, fields, info, filters)
 
 
-def print_orphaned_packages(data):
+def print_orphaned_packages(data, filters=None):
     fields = [
         ("Name", "package"), ("Version", "installed-version")
     ]
     prefix = "zypper_package_orphan"
+    description = "zypper packages with no update source (orphaned)"
+    info = Info(prefix, description)
 
-    __print_pending_data(data, True, fields, None, prefix, None)
+    __print_pending_data(data, fields, info, filters)
 
 
-def __print_data_sum(data, prefix, filters=None):
+def print_data_sum(data, prefix, description, filters=None):
+    gauge = Gauge(prefix,
+                description,
+                namespace=NAMESPACE,
+                registry=REGISTRY)
     filters = filters or {}
     if len(data) == 0:
-        print(prefix + "{total} 0")
+        gauge.set(0)
     else:
-        gauge = 0
         for package in data:
             check = all(package.get(k) == v for k, v in filters.items())
             if check:
-                gauge += 1
-        print(prefix + "{total} " + str(gauge))
-
-
-def print_updates_sum(data, filters=None):
-    prefix = "zypper_updates_pending_total"
-
-    __print_data_sum(data, prefix, filters)
-
-
-def print_patches_sum(data, prefix="zypper_patches_pending_total", filters=None):
-    __print_data_sum(data, prefix, filters)
+                gauge.inc()
 
 
 def print_reboot_required():
@@ -107,19 +105,19 @@ def print_reboot_required():
     is_path_ok = os.path.isfile(needs_restarting_path) and os.access(needs_restarting_path, os.X_OK)
 
     if is_path_ok:
+        prefix = "node_reboot_required"
+        description = "Node require reboot to activate installed updates or patches. (0 = not needed, 1 = needed)"
+        info = Info(prefix, description)
         result = subprocess.run(
             [needs_restarting_path, '-r'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False)
 
-        print('# HELP node_reboot_required Node require reboot to activate installed updates or '
-              'patches. (0 = not needed, 1 = needed)')
-        print('# TYPE node_reboot_required gauge')
         if result.returncode == 0:
-            print('node_reboot_required 0')
+            info.info({"node_reboot_required": "0"})
         else:
-            print('node_reboot_required 1')
+            info.info({"node_reboot_required": "1"})
 
 
 def print_zypper_version():
@@ -127,8 +125,9 @@ def print_zypper_version():
         ['/usr/bin/zypper', '-V'],
         stdout=subprocess.PIPE,
         check=False).stdout.decode('utf-8')
+    info = Info("zypper_version", "zypper installed package version")
 
-    print("zypper_version " + result.split()[1])
+    info.info({"zypper_version": result.split()[1]})
 
 
 def __extract_lu_data(raw: str):
@@ -228,57 +227,45 @@ def main(argv: Sequence[str] | None = None) -> int:
     ).stdout.decode('utf-8')
     data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned)
 
-    print('# HELP zypper_update_pending zypper package update available from repository. (0 = not '
-          'available, 1 = available)')
-    print('# TYPE zypper_update_pending gauge')
     print_pending_updates(data_zypper_lu, args.all_info)
 
-    print('# HELP zypper_updates_pending_total zypper packages updates available in total')
-    print('# TYPE zypper_updates_pending_total counter')
-    print_updates_sum(data_zypper_lu)
+    print_data_sum(data_zypper_lu, "zypper_updates_pending_total", "zypper packages updates available in total")
 
-    print('# HELP zypper_patch_pending zypper patch available from repository. (0 = not available '
-          ', 1 = available)')
-    print('# TYPE zypper_patch_pending gauge')
     print_pending_patches(data_zypper_lp, args.all_info)
 
-    print('# HELP zypper_patches_pending_total zypper patches available total')
-    print('# TYPE zypper_patches_pending_total counter')
-    print_patches_sum(data_zypper_lp)
+    print_data_sum(data_zypper_lp,
+                   "zypper_patches_pending_total",
+                   "zypper patches available total")
 
-    print('# HELP zypper_patches_pending_security_total zypper patches available with category '
-          'security total')
-    print('# TYPE zypper_patches_pending_security_total counter')
-    print_patches_sum(data_zypper_lp,
-                      prefix="zypper_patches_pending_security_total",
-                      filters={'Category': 'security'})
+    print_data_sum(data_zypper_lp,
+                   "zypper_patches_pending_security_total",
+                   "zypper patches available with category security total",
+                   filters={'Category': 'security'})
 
-    print('# HELP zypper_patches_pending_security_important_total zypper patches available with '
-          'category security severity important total')
-    print('# TYPE zypper_patches_pending_security_important_total counter')
-    print_patches_sum(data_zypper_lp,
-                      prefix="zypper_patches_pending_security_important_total",
-                      filters={'Category': 'security', 'Severity': 'important'})
+    print_data_sum(data_zypper_lp,
+                   "zypper_patches_pending_security_important_total",
+                   "zypper patches available with category security severity important total",
+                   filters={'Category': 'security', 'Severity': 'important'})
 
-    print('# HELP zypper_patches_pending_reboot_total zypper patches available which require '
-          'reboot total')
-    print('# TYPE zypper_patches_pending_reboot_total counter')
-    print_patches_sum(data_zypper_lp,
-                      prefix="zypper_patches_pending_reboot_total",
-                      filters={'Interactive': 'reboot'})
+    print_data_sum(data_zypper_lp,
+                   "zypper_patches_pending_reboot_total",
+                   "zypper patches available which require reboot total",
+                   filters={'Interactive': 'reboot'})
 
     print_reboot_required()
 
-    print('# HELP zypper_version zypper installed package version')
-    print('# TYPE zypper_version gauges')
     print_zypper_version()
 
-    print('# HELP zypper_package_orphan zypper packages with no update source (orphaned)')
-    print('# TYPE zypper_package_orphan gauges')
     print_orphaned_packages(data_zypper_orphaned)
 
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        main()
+    except Exception as e:
+        print("ERROR: {}".format(e), file=sys.stderr)
+        sys.exit(1)
+
+    print(generate_latest(REGISTRY).decode(), end="")
