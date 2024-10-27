@@ -113,7 +113,6 @@ def print_reboot_required():
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False)
-
         if result.returncode == 0:
             info.info({"node_reboot_required": "0"})
         else:
@@ -152,7 +151,7 @@ def stdout_zypper_command(command):
     )
 
     if result.returncode != 0:
-        raise RuntimeError(f"zypper returned exit code {result.returncode}")
+        raise RuntimeError(f"zypper returned exit code {result.returncode}: {result.stderr}")
 
     return result.stdout.decode('utf-8')
 
