@@ -130,60 +130,70 @@ def print_zypper_version():
     info.info({"zypper_version": result.split()[1]})
 
 
-def __extract_lu_data(raw: str):
+def __extract_data(raw, fields):
     raw_lines = raw.splitlines()[2:]
     extracted_data = []
 
     for line in raw_lines:
         parts = [part.strip() for part in line.split('|')]
-        if len(parts) >= 5:
+        if len(parts) >= max(fields.values()) + 1:
             extracted_data.append({
-                "Repository": parts[1],
-                "Name": parts[2],
-                "Current Version": parts[3],
-                "Available Version": parts[4],
-                "Arch": parts[5]
+                field: parts[index] for field, index in fields.items()
             })
 
     return extracted_data
 
 
-def __extract_lp_data(raw: str):
-    raw_lines = raw.splitlines()[2:]
-    extracted_data = []
+def stdout_zypper_command(command):
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        check=False
+    )
 
-    for line in raw_lines:
-        parts = [part.strip() for part in line.split('|')]
-        if len(parts) >= 5:
-            extracted_data.append({
-                "Repository": parts[0],
-                "Name": parts[1],
-                "Category": parts[2],
-                "Severity": parts[3],
-                "Interactive": parts[4],
-                "Status": parts[5]
-            })
+    if result.returncode != 0:
+        raise RuntimeError(f"zypper returned exit code {result.returncode}")
 
-    return extracted_data
+    return result.stdout.decode('utf-8')
 
 
-def __extract_orphaned_data(raw: str):
-    raw_lines = raw.splitlines()[2:]
-    extracted_data = []
+def extract_lu_data(raw: str):
+    fields = {
+        "Repository": 1,
+        "Name": 2,
+        "Current Version": 3,
+        "Available Version": 4,
+        "Arch": 5
+    }
 
-    for line in raw_lines:
-        parts = [part.strip() for part in line.split('|')]
-        if len(parts) >= 5:
-            extracted_data.append({
-                "Name": parts[3],
-                "Version": parts[4]
-            })
+    return __extract_data(raw, fields)
 
-    return extracted_data
+
+def extract_lp_data(raw: str):
+    fields = {
+        "Repository": 0,
+        "Name": 1,
+        "Category": 2,
+        "Severity": 3,
+        "Interactive": 4,
+        "Status": 5
+    }
+
+    return __extract_data(raw, fields)
+
+
+def extract_orphaned_data(raw: str):
+    fields = {
+        "Name": 3,
+        "Version": 4
+    }
+
+    return __extract_data(raw, fields)
 
 
 def __parse_arguments(argv):
     parser = argparse.ArgumentParser()
+
     parser.add_mutually_exclusive_group(required=False)
     parser.add_argument(
         "-m",
@@ -200,74 +210,46 @@ def __parse_arguments(argv):
         help="Print less package infos",
     )
     parser.set_defaults(all_info=True)
+
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = __parse_arguments(argv)
-
-    raw_zypper_lu = subprocess.run(
-        ['/usr/bin/zypper', '--quiet', 'lu'],
-        stdout=subprocess.PIPE,
-        check=False
+    data_zypper_lu = extract_lu_data(
+        stdout_zypper_command(['/usr/bin/zypper', '--quiet', 'lu'])
     )
-    data_zypper_lu = []
-    if raw_zypper_lu.returncode == 0:
-        data_zypper_lu = __extract_lu_data(raw_zypper_lu.stdout.decode('utf-8'))
-    else:
-        raise RuntimeError("zypper returned exit code %d" % raw_zypper_lu.returncode)
-
-    raw_zypper_lp = subprocess.run(
-        ['/usr/bin/zypper', '--quiet', 'lp'],
-        stdout=subprocess.PIPE,
-        check=False
+    data_zypper_lp = extract_lp_data(
+        stdout_zypper_command(['/usr/bin/zypper', '--quiet', 'lp'])
     )
-    data_zypper_lp = []
-    if raw_zypper_lp.returncode == 0:
-        data_zypper_lp = __extract_lp_data(raw_zypper_lp.stdout.decode('utf-8'))
-    else:
-        raise RuntimeError("zypper returned exit code %d" % raw_zypper_lp.returncode)
-
-    raw_zypper_orphaned = subprocess.run(
-        ['/usr/bin/zypper', '--quiet', 'pa', '--orphaned'],
-        stdout=subprocess.PIPE,
-        check=False
+    data_zypper_orphaned = extract_orphaned_data(
+        stdout_zypper_command(['/usr/bin/zypper', '--quiet', 'pa', '--orphaned'])
     )
-    data_zypper_orphaned = []
-    if raw_zypper_orphaned.returncode == 0:
-        data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned.stdout.decode('utf-8'))
-    else:
-        raise RuntimeError("zypper returned exit code %d" % raw_zypper_orphaned.returncode)
 
-    print_pending_updates(data_zypper_lu, args.all_info)
-
-    print_data_sum(data_zypper_lu, "zypper_updates_pending_total", "zypper packages updates available in total")
-
-    print_pending_patches(data_zypper_lp, args.all_info)
-
+    print_pending_updates(data_zypper_lu,
+                          args.all_info)
+    print_data_sum(data_zypper_lu,
+                   "zypper_updates_pending_total",
+                   "zypper packages updates available in total")
+    print_pending_patches(data_zypper_lp,
+                          args.all_info)
     print_data_sum(data_zypper_lp,
                    "zypper_patches_pending_total",
                    "zypper patches available total")
-
     print_data_sum(data_zypper_lp,
                    "zypper_patches_pending_security_total",
                    "zypper patches available with category security total",
                    filters={'Category': 'security'})
-
     print_data_sum(data_zypper_lp,
                    "zypper_patches_pending_security_important_total",
                    "zypper patches available with category security severity important total",
                    filters={'Category': 'security', 'Severity': 'important'})
-
     print_data_sum(data_zypper_lp,
                    "zypper_patches_pending_reboot_total",
                    "zypper patches available which require reboot total",
                    filters={'Interactive': 'reboot'})
-
     print_reboot_required()
-
     print_zypper_version()
-
     print_orphaned_packages(data_zypper_orphaned)
 
     return 0
