@@ -210,22 +210,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         ['/usr/bin/zypper', '--quiet', 'lu'],
         stdout=subprocess.PIPE,
         check=False
-    ).stdout.decode('utf-8')
-    data_zypper_lu = __extract_lu_data(raw_zypper_lu)
+    )
+    data_zypper_lu = []
+    if raw_zypper_lu.returncode == 0:
+        data_zypper_lu = __extract_lu_data(raw_zypper_lu.stdout.decode('utf-8'))
+    else:
+        raise RuntimeError("zypper returned exit code %d" % raw_zypper_lu.returncode)
 
     raw_zypper_lp = subprocess.run(
         ['/usr/bin/zypper', '--quiet', 'lp'],
         stdout=subprocess.PIPE,
         check=False
-    ).stdout.decode('utf-8')
-    data_zypper_lp = __extract_lp_data(raw_zypper_lp)
+    )
+    data_zypper_lp = []
+    if raw_zypper_lp.returncode == 0:
+        data_zypper_lp = __extract_lp_data(raw_zypper_lp.stdout.decode('utf-8'))
+    else:
+        raise RuntimeError("zypper returned exit code %d" % raw_zypper_lp.returncode)
 
     raw_zypper_orphaned = subprocess.run(
         ['/usr/bin/zypper', '--quiet', 'pa', '--orphaned'],
         stdout=subprocess.PIPE,
         check=False
-    ).stdout.decode('utf-8')
-    data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned)
+    )
+    data_zypper_orphaned = []
+    if raw_zypper_orphaned.returncode == 0:
+        data_zypper_orphaned = __extract_orphaned_data(raw_zypper_orphaned.stdout.decode('utf-8'))
+    else:
+        raise RuntimeError("zypper returned exit code %d" % raw_zypper_orphaned.returncode)
 
     print_pending_updates(data_zypper_lu, args.all_info)
 
