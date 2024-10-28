@@ -45,12 +45,18 @@ def __print_pending_data(data, fields, info, filters=None):
 
 def print_pending_updates(data, all_info, filters=None):
     if all_info:
-        fields = [("Repository", "repository"), ("Name", "package-name"),
-                   ("Available Version", "available-version")]
+        fields = [("Repository", "repository"),
+                  ("Name", "package-name"),
+                  ("Available Version",
+                   "available-version")]
     else:
-        fields = [("Repository", "repository"), ("Name", "package-name")]
+        fields = [("Repository", "repository"),
+                  ("Name", "package-name")]
     prefix = "zypper_update_pending"
-    description = "zypper package update available from repository. (0 = not available, 1 = available)"
+    description = (
+        "zypper package update available from repository. "
+        "(0 = not available, 1 = available)"
+    )
     info = Info(prefix, description)
 
     __print_pending_data(data, fields, info, filters)
@@ -58,15 +64,17 @@ def print_pending_updates(data, all_info, filters=None):
 
 def print_pending_patches(data, all_info, filters=None):
     if all_info:
-        fields = [
-            ("Repository", "repository"), ("Name", "patch-name"), ("Category", "category"),
-            ("Severity", "severity"), ("Interactive", "interactive"), ("Status", "status")
-        ]
+        fields = [("Repository", "repository"),
+                  ("Name", "patch-name"),
+                  ("Category", "category"),
+                  ("Severity", "severity"),
+                  ("Interactive", "interactive"),
+                  ("Status", "status")]
     else:
-        fields = [
-            ("Repository", "repository"), ("Name", "patch-name"),
-            ("Interactive", "interactive"), ("Status", "status")
-        ]
+        fields = [("Repository", "repository"),
+                  ("Name", "patch-name"),
+                  ("Interactive", "interactive"),
+                  ("Status", "status")]
     prefix = "zypper_patch_pending"
     description = "zypper patch available from repository. (0 = not available , 1 = available)"
     info = Info(prefix, description)
@@ -75,9 +83,8 @@ def print_pending_patches(data, all_info, filters=None):
 
 
 def print_orphaned_packages(data, filters=None):
-    fields = [
-        ("Name", "package"), ("Version", "installed-version")
-    ]
+    fields = [("Name", "package"),
+              ("Version", "installed-version")]
     prefix = "zypper_package_orphan"
     description = "zypper packages with no update source (orphaned)"
     info = Info(prefix, description)
@@ -87,9 +94,9 @@ def print_orphaned_packages(data, filters=None):
 
 def print_data_sum(data, prefix, description, filters=None):
     gauge = Gauge(prefix,
-                description,
-                namespace=NAMESPACE,
-                registry=REGISTRY)
+                  description,
+                  namespace=NAMESPACE,
+                  registry=REGISTRY)
     filters = filters or {}
     if len(data) == 0:
         gauge.set(0)
@@ -106,7 +113,10 @@ def print_reboot_required():
 
     if is_path_ok:
         prefix = "node_reboot_required"
-        description = "Node require reboot to activate installed updates or patches. (0 = not needed, 1 = needed)"
+        description = (
+            "Node require reboot to activate installed updates or patches. "
+            "(0 = not needed, 1 = needed)"
+        )
         info = Info(prefix, description)
         result = subprocess.run(
             [needs_restarting_path, '-r'],
