@@ -124,6 +124,21 @@ metrics = {
         "Device used size in bytes",
         ["device"], namespace=namespace, registry=registry,
     ),
+    "ocp_support": Gauge(
+        "ocp_support",
+        "Support for the OCP Datacenter SSD specification",
+        ["device"], namespace=namespace, registry=registry,
+    ),
+    "media_units_read": Counter(
+        "meda_units_read_total",
+        "Number of bytes read from raw media, reported by controller",
+        ["device"], namespace=namespace, registry=registry,
+    ),
+    "media_units_written": Counter(
+        "media_units_written_total",
+        "Number of bytes written to raw media, reported by controller",
+        ["device"], namespace=namespace, registry=registry,
+    ),
     # fmt: on
 }
 
@@ -158,6 +173,7 @@ def main():
 
     for device in device_list["Devices"]:
         device_path = device["DevicePath"]
+
         device_name = os.path.basename(device_path)
 
         metrics["device_info"].labels(
@@ -172,6 +188,19 @@ def main():
         metrics["used_bytes"].labels(device_name).set(device["UsedBytes"])
 
         smart_log = exec_nvme_json("smart-log", device_path)
+
+        # Not all devices support the OCP SMART extended page so we try and get it but
+        # do not fail if we don't get it. Instead we set a flag to
+        # indicate that OCP is not supported.
+        try:
+            ocp_log = exec_nvme_json("ocp", "smart-add-log", device_path)
+            metrics["ocp_support"].labels(device_name).set(1)
+            metrics["media_units_read"].labels(device_name).inc(int(ocp_log["Physical media units read"]["lo"]))
+            metrics["media_units_written"].labels(device_name).inc(int(ocp_log["Physical media units written"]["lo"]))
+        except Exception as e:
+            metrics["ocp_support"].labels(device_name).set(0)
+            metrics["media_units_read"].labels(device_name).inc(0)
+            metrics["media_units_written"].labels(device_name).inc(0)
 
         # Various counters in the NVMe specification are 128-bit, which would have to discard
         # resolution if converted to a JSON number (i.e., float64_t). Instead, nvme-cli marshals
