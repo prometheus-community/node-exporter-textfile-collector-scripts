@@ -74,10 +74,7 @@ metrics = {
         "Device error log entry count",
         ["device"], namespace=namespace, registry=registry,
     ),
-    # FIXME: The "nvmecli" metric ought to be an Info type, not a Gauge. However, making this change
-    # will result in the metric having a "_info" suffix automatically appended, which is arguably
-    # a breaking change.
-    "nvmecli": Gauge(
+    "nvmecli": Info(
         "nvmecli",
         "nvme-cli tool information",
         ["version"], namespace=namespace, registry=registry,
@@ -159,7 +156,7 @@ def main():
         cli_version = match.group(1)
     else:
         cli_version = "unknown"
-    metrics["nvmecli"].labels(cli_version).set(1)
+    metrics["nvmecli"].labels(cli_version)
 
     device_list = exec_nvme_json("list")
 
