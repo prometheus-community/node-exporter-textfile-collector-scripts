@@ -34,6 +34,12 @@ metrics = {
         "Device controller busy time in seconds",
         ["device"], namespace=namespace, registry=registry,
     ),
+    "controller_info": Info(
+        "controller",
+        "Controller information",
+        ["controller", "model", "firmware", "serial", "transport"], namespace=namespace,
+        registry=registry,
+    ),
     "critical_warning": Gauge(
         "critical_warning",
         "Device critical warning bitmap field",
@@ -48,11 +54,6 @@ metrics = {
         "data_units_written_total",
         "Number of 512-byte data units written by host, reported in thousands",
         ["device"], namespace=namespace, registry=registry,
-    ),
-    "device_info": Info(
-        "device",
-        "Device information",
-        ["device", "model", "firmware", "serial"], namespace=namespace, registry=registry,
     ),
     "host_read_commands": Counter(
         "host_read_commands_total",
@@ -163,19 +164,16 @@ def main():
     for device in device_list["Devices"]:
         for subsys in device["Subsystems"]:
             for ctrl in subsys["Controllers"]:
+                metrics["controller_info"].labels(
+                    ctrl["Controller"],
+                    ctrl["ModelNumber"],
+                    ctrl["Firmware"],
+                    ctrl["SerialNumber"].strip(),
+                    ctrl["Transport"],
+                )
+
                 for ns in ctrl["Namespaces"]:
                     device_name = ns["NameSpace"]
-
-                    # FIXME: This metric ought to be refactored into a "controller_info" metric,
-                    # since it contains information that is not unique to the namespace. However,
-                    # previous versions of this collector erroneously referred to namespaces, e.g.
-                    # "nvme0n1", as devices, so preserve the former behaviour for now.
-                    metrics["device_info"].labels(
-                        device_name,
-                        ctrl["ModelNumber"],
-                        ctrl["Firmware"],
-                        ctrl["SerialNumber"].strip(),
-                    )
 
                     metrics["sector_size"].labels(device_name).set(ns["SectorSize"])
                     metrics["physical_size"].labels(device_name).set(ns["PhysicalSize"])
