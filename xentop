@@ -1,0 +1,60 @@
+#!/usr/bin/awk -f
+# xentop -i 1 -f -b | ./xentop
+
+function export_metric(metric) {
+	printf("\n# HELP %s%s %s from xentop\n", namespace, metric, metric_fields[metric]);
+	printf("# TYPE %s%s gauge\n", namespace, metric);
+	for (i=0; i < dom_count; i++) {
+			printf("%s%s{name=\"%s\"} %f\n", namespace, metric, metrics["name," i], metrics[metric "," i]);
+	}
+}
+
+# Fields are Bar separated, with space padding.
+BEGIN {
+	FPAT = "([^ ]+)|(no limit)" # handle "no limit" value corner case
+	namespace = "node_xentop_";
+
+	# map metric names to header, also used for HELP.
+	metric_fields["cpu_secs"] = "CPU(sec)"
+	metric_fields["mem_kbytes"] = "MEM(k)"
+	metric_fields["mem_percent"] = "MEM(%)"
+	metric_fields["mem_max_kbytes"] = "MAXMEM(k)"
+	metric_fields["maxmem_percent"] = "MAXMEM(%)"
+	metric_fields["vcpus"] = "VCPUS"
+	metric_fields["nets"] = "NETS"
+	metric_fields["network_tx_kbytes"] = "NETTX(k)"
+	metric_fields["network_rx_kbytes"] = "NETRX(k)"
+	metric_fields["vbds"] = "VBDS"
+	metric_fields["vbd_oo"] = "VBD_OO"
+	metric_fields["vbd_rd"] = "VBD_RD"
+	metric_fields["vbd_wr"] = "VBD_WR"
+	metric_fields["vbd_rsect"] = "VBD_RSECT"
+	metric_fields["vbd_wsect"] = "VBD_WSECT"
+	metric_fields["ssid"] = "SSID"
+	metric_fields["name"] = "NAME" # used as label
+
+	dom_count = 0;
+}
+
+{
+	if (NR == 1) {
+		# load header field positions
+		for(i=1; i<=NF; i++) {
+			for (name in metric_fields) {
+				if ($i == metric_fields[name] ) { columns[name] = i; }
+			}
+		}
+	} else {
+		for(metric in columns) {
+			metrics[metric "," dom_count] = $(columns[metric]);
+		}
+		dom_count++;
+	}
+}
+
+END {
+	for (name in metric_fields) {
+		if ( name == "name" ) { continue; }
+		export_metric(name);
+	}
+}
