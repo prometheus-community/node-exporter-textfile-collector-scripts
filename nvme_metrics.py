@@ -117,7 +117,7 @@ metrics = {
     "namespace_info": Info(
         "namespace",
         "Namespace information",
-        ["namepace", "nsid", "controller"], namespace=namespace, registry=registry,
+        ["device", "nsid", "controller"], namespace=namespace, registry=registry,
     ),
     "physical_size": Gauge(
         "physical_size_bytes",
