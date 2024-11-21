@@ -24,6 +24,7 @@ namespace = "nvme"
 
 metrics = {
     # fmt: off
+    # Host-specific metrics
     "nvmecli": Info(
         "nvmecli",
         "nvme-cli tool information",
@@ -196,8 +197,7 @@ def main():
                     metrics["physical_size"].labels(ns_dev).set(ns["PhysicalSize"])
                     metrics["used_bytes"].labels(ns_dev).set(ns["UsedBytes"])
 
-                # Most SSDs (perhaps _all_ consumer grade SSDs) only contain a single namespace.
-                # Fetch the device global SMART log by omitting any --namespace-id flag.
+                # Fetch the controller global SMART log by omitting the --namespace-id flag.
                 smart_log = exec_nvme_json("smart-log", os.path.join("/dev", ctrl["Controller"]))
 
                 # Various counters in the NVMe specification are 128-bit, which would have to
