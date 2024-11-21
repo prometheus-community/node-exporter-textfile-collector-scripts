@@ -114,6 +114,11 @@ metrics = {
     ),
 
     # Namespace-specific (e.g. "nvme0n1") metrics
+    "namespace_info": Info(
+        "namespace",
+        "Namespace information",
+        ["namepace", "nsid", "controller"], namespace=namespace, registry=registry,
+    ),
     "physical_size": Gauge(
         "physical_size_bytes",
         "Device size in bytes",
@@ -179,11 +184,17 @@ def main():
                 )
 
                 for ns in ctrl["Namespaces"]:
-                    device_name = ns["NameSpace"]
+                    ns_dev = ns["NameSpace"]
 
-                    metrics["sector_size"].labels(device_name).set(ns["SectorSize"])
-                    metrics["physical_size"].labels(device_name).set(ns["PhysicalSize"])
-                    metrics["used_bytes"].labels(device_name).set(ns["UsedBytes"])
+                    metrics["namespace_info"].labels(
+                        ns_dev,
+                        ns["NSID"],
+                        ctrl_dev,
+                    )
+
+                    metrics["sector_size"].labels(ns_dev).set(ns["SectorSize"])
+                    metrics["physical_size"].labels(ns_dev).set(ns["PhysicalSize"])
+                    metrics["used_bytes"].labels(ns_dev).set(ns["UsedBytes"])
 
                 # Most SSDs (perhaps _all_ consumer grade SSDs) only contain a single namespace.
                 # Fetch the device global SMART log by omitting any --namespace-id flag.
