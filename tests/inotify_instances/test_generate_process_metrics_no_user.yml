@@ -1,0 +1,3 @@
+output: |
+  # HELP inotify_instances Total number of inotify instances held open by a process.
+  # TYPE inotify_instances gauge
