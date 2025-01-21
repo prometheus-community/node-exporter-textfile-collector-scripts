@@ -84,6 +84,20 @@ def _write_held_upgrades(registry, cache):
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
 
 
+def _write_obsolete_packages(registry, cache):
+    # This corresponds to the apt filter "?obsolete"
+    obsoletes = [p for p in cache if p.is_installed and (
+                  p.candidate is None or
+                  not p.candidate.origins or
+                  (len(p.candidate.origins) == 1 and
+                   p.candidate.origins[0].origin in ['', "/var/lib/dpkg/status"])
+                )]
+
+    g = Gauge('apt_packages_obsolete_count', "Apt packages which are obsolete",
+              registry=registry)
+    g.set(len(obsoletes))
+
+
 def _write_autoremove_pending(registry, cache):
     autoremovable_packages = {p for p in cache if p.is_auto_removable}
     g = Gauge('apt_autoremove_pending', "Apt packages pending autoremoval.",
@@ -122,6 +136,7 @@ def _main():
     registry = CollectorRegistry()
     _write_pending_upgrades(registry, cache)
     _write_held_upgrades(registry, cache)
+    _write_obsolete_packages(registry, cache)
     _write_autoremove_pending(registry, cache)
     _write_cache_timestamps(registry)
     _write_reboot_required(registry)
