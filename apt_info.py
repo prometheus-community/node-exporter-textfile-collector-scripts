@@ -35,8 +35,13 @@ def _convert_candidates_to_upgrade_infos(candidates):
     changes_dict = collections.defaultdict(lambda: collections.defaultdict(int))
 
     for candidate in candidates:
+        # The 'now' archive only shows that packages are not installed. We tend
+        # to filter the candidates on those kinds of conditions before reaching
+        # here so here we don't want to include this information in order to
+        # reduce noise in the data.
         origins = sorted(
-            {f"{o.origin}:{o.codename}/{o.archive}" for o in candidate.origins}
+            {f"{o.origin}:{o.codename}/{o.archive}" for o in candidate.origins
+             if o.archive != 'now'}
         )
         changes_dict[",".join(origins)][candidate.architecture] += 1
 
@@ -105,6 +110,17 @@ def _write_autoremove_pending(registry, cache):
     g.set(len(autoremovable_packages))
 
 
+def _write_installed_packages_per_origin(registry, cache):
+    installed_packages = {p.candidate for p in cache if p.is_installed}
+    per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
+
+    if per_origin:
+        g = Gauge('apt_packages_per_origin_count', "Number of packages installed per origin.",
+                  ['origin', 'arch'], registry=registry)
+        for o in per_origin:
+            g.labels(o.labels['origin'], o.labels['arch']).set(o.count)
+
+
 def _write_cache_timestamps(registry):
     g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
     apt_pkg.init_config()
@@ -138,6 +154,7 @@ def _main():
     _write_held_upgrades(registry, cache)
     _write_obsolete_packages(registry, cache)
     _write_autoremove_pending(registry, cache)
+    _write_installed_packages_per_origin(registry, cache)
     _write_cache_timestamps(registry)
     _write_reboot_required(registry)
     print(generate_latest(registry).decode(), end='')
