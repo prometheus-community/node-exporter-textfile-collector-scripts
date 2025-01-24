@@ -1,0 +1,5 @@
+output: |
+  # HELP inotify_instances Total number of inotify instances held open by a process.
+  # TYPE inotify_instances gauge
+  inotify_instances{command="systemd-journald",pid="512",uid="33"} 6.0
+  inotify_instances{command="systemd-logind",pid="731",uid="33"} 1.0
