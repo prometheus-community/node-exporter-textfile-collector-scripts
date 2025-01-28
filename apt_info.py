@@ -25,7 +25,9 @@ Authors: Kyle Fazzari <kyrofa@ubuntu.com>
 import apt
 import apt_pkg
 import collections
+import logging
 import os
+import sys
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 _UpgradeInfo = collections.namedtuple("_UpgradeInfo", ["labels", "count"])
@@ -62,6 +64,12 @@ def _write_pending_upgrades(registry, cache):
     candidates = {
         p.candidate for p in cache if p.is_upgradable and not p.phasing_applied
     }
+    for candidate in candidates:
+        logging.debug(
+            "pending upgrade: %s / %s",
+            candidate.package,
+            candidate.architecture,
+        )
     upgrade_list = _convert_candidates_to_upgrade_infos(candidates)
 
     if upgrade_list:
@@ -80,6 +88,12 @@ def _write_held_upgrades(registry, cache):
             and not p.phasing_applied
         )
     }
+    for candidate in held_candidates:
+        logging.debug(
+            "held upgrade: %s / %s",
+            candidate.package,
+            candidate.architecture,
+        )
     upgrade_list = _convert_candidates_to_upgrade_infos(held_candidates)
 
     if upgrade_list:
@@ -97,6 +111,15 @@ def _write_obsolete_packages(registry, cache):
                   (len(p.candidate.origins) == 1 and
                    p.candidate.origins[0].origin in ['', "/var/lib/dpkg/status"])
                 )]
+    for package in obsoletes:
+        if package.candidate is None:
+            logging.debug("obsolete package with no candidate: %s", package)
+        else:
+            logging.debug(
+                "obsolete package: %s / %s",
+                package,
+                package.candidate.architecture,
+            )
 
     g = Gauge('apt_packages_obsolete_count', "Apt packages which are obsolete",
               registry=registry)
@@ -104,7 +127,15 @@ def _write_obsolete_packages(registry, cache):
 
 
 def _write_autoremove_pending(registry, cache):
-    autoremovable_packages = {p for p in cache if p.is_auto_removable}
+    autoremovable_packages = {
+        p.candidate for p in cache if p.is_auto_removable
+    }
+    for candidate in autoremovable_packages:
+        logging.debug(
+            "autoremovable package: %s / %s",
+            candidate.package,
+            candidate.architecture,
+        )
     g = Gauge('apt_autoremove_pending', "Apt packages pending autoremoval.",
               registry=registry)
     g.set(len(autoremovable_packages))
@@ -147,6 +178,9 @@ def _write_reboot_required(registry):
 
 
 def _main():
+    if os.getenv('DEBUG'):
+        logging.basicConfig(level=logging.DEBUG)
+
     cache = apt.cache.Cache()
 
     registry = CollectorRegistry()
