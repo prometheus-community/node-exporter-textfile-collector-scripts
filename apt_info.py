@@ -24,6 +24,7 @@ Authors: Kyle Fazzari <kyrofa@ubuntu.com>
 
 import apt
 import apt_pkg
+import argparse
 import collections
 import logging
 import os
@@ -60,9 +61,11 @@ def _convert_candidates_to_upgrade_infos(candidates):
     return changes_list
 
 
-def _write_pending_upgrades(registry, cache):
+def _write_pending_upgrades(registry, cache, exclusions):
     candidates = {
-        p.candidate for p in cache if p.is_upgradable and not p.phasing_applied
+        p.candidate
+        for p in cache
+        if p.is_upgradable and not p.phasing_applied and p.name not in exclusions
     }
     for candidate in candidates:
         logging.debug(
@@ -79,13 +82,14 @@ def _write_pending_upgrades(registry, cache):
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
 
 
-def _write_held_upgrades(registry, cache):
+def _write_held_upgrades(registry, cache, exclusions):
     held_candidates = {
         p.candidate for p in cache
         if (
             p.is_upgradable
             and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
             and not p.phasing_applied
+            and p.name not in exclusions
         )
     }
     for candidate in held_candidates:
@@ -103,13 +107,14 @@ def _write_held_upgrades(registry, cache):
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
 
 
-def _write_obsolete_packages(registry, cache):
+def _write_obsolete_packages(registry, cache, exclusions):
     # This corresponds to the apt filter "?obsolete"
     obsoletes = [p for p in cache if p.is_installed and (
                   p.candidate is None or
                   not p.candidate.origins or
                   (len(p.candidate.origins) == 1 and
                    p.candidate.origins[0].origin in ['', "/var/lib/dpkg/status"])
+                  and p.name not in exclusions
                 )]
     for package in obsoletes:
         if package.candidate is None:
@@ -126,9 +131,11 @@ def _write_obsolete_packages(registry, cache):
     g.set(len(obsoletes))
 
 
-def _write_autoremove_pending(registry, cache):
+def _write_autoremove_pending(registry, cache, exclusions):
     autoremovable_packages = {
-        p.candidate for p in cache if p.is_auto_removable
+        p.candidate
+        for p in cache
+        if p.is_auto_removable and p.name not in exclusions
     }
     for candidate in autoremovable_packages:
         logging.debug(
@@ -181,13 +188,17 @@ def _main():
     if os.getenv('DEBUG'):
         logging.basicConfig(level=logging.DEBUG)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exclude", nargs='*', default=[])
+    args = parser.parse_args(sys.argv[1:])
+
     cache = apt.cache.Cache()
 
     registry = CollectorRegistry()
-    _write_pending_upgrades(registry, cache)
-    _write_held_upgrades(registry, cache)
-    _write_obsolete_packages(registry, cache)
-    _write_autoremove_pending(registry, cache)
+    _write_pending_upgrades(registry, cache, args.exclude)
+    _write_held_upgrades(registry, cache, args.exclude)
+    _write_obsolete_packages(registry, cache, args.exclude)
+    _write_autoremove_pending(registry, cache, args.exclude)
     _write_installed_packages_per_origin(registry, cache)
     _write_cache_timestamps(registry)
     _write_reboot_required(registry)
