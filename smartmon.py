@@ -87,13 +87,6 @@ metrics = {
         namespace=namespace,
         registry=registry,
     ),
-    "smartctl_run": Gauge(
-        "smartctl_run",
-        "SMART metric smartctl_run",
-        ["device", "disk"],
-        namespace=namespace,
-        registry=registry,
-    ),
     "device_active": Gauge(
         "device_active",
         "SMART metric device_active",
