@@ -64,6 +64,7 @@ temperature_internal
 total_lbas_read
 total_lbas_written
 udma_crc_error_count
+uncorrectable_error_cnt
 unsafe_shutdown_count
 unused_rsvd_blk_cnt_tot
 wear_leveling_count
