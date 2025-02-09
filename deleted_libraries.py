@@ -23,18 +23,18 @@ def main():
                 for line in file:
                     part = line.decode().strip().split()
 
-                    if len(part) == 7:
-                        library = part[5]
-                        comment = part[6]
+                    if len(part) != 7:
+                        continue
+                    library = part[5]
+                    comment = part[6]
 
-                        if '/lib/' in library and '(deleted)' in comment:
-                            if path not in processes_linking_deleted_libraries:
-                                processes_linking_deleted_libraries[path] = {}
+                    if '/lib/' in library and '(deleted)' in comment:
+                        if path not in processes_linking_deleted_libraries:
+                            processes_linking_deleted_libraries[path] = {}
 
-                                if library in processes_linking_deleted_libraries[path]:
-                                    processes_linking_deleted_libraries[path][library] += 1
-                                else:
-                                    processes_linking_deleted_libraries[path][library] = 1
+                            processes_linking_deleted_libraries[path].setdefault(library, 0)
+                            processes_linking_deleted_libraries[path][library] += 1
+
         except EnvironmentError as e:
             # Ignore non-existent files, since the files may have changed since
             # we globbed.
@@ -50,10 +50,8 @@ def main():
                 continue
 
             libraries_seen.add(library)
-            if library in num_processes_per_library:
-                num_processes_per_library[library] += 1
-            else:
-                num_processes_per_library[library] = 1
+            num_processes_per_library.setdefault(library, 0)
+            num_processes_per_library[library] += 1
 
     registry = CollectorRegistry()
     g = Gauge('node_processes_linking_deleted_libraries',
