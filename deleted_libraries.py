@@ -7,10 +7,8 @@ The aim is to discover processes that are still using libraries that have since
 been updated, perhaps due security vulnerabilities.
 """
 
-import errno
 import glob
 import os
-import sys
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 
@@ -31,15 +29,18 @@ def main():
                             if path not in processes_linking_deleted_libraries:
                                 processes_linking_deleted_libraries[path] = {}
 
-                                if library in processes_linking_deleted_libraries[path]:
-                                    processes_linking_deleted_libraries[path][library] += 1
-                                else:
-                                    processes_linking_deleted_libraries[path][library] = 1
-        except EnvironmentError as e:
+                            if library in processes_linking_deleted_libraries[path]:
+                                processes_linking_deleted_libraries[path][library] += 1
+                            else:
+                                processes_linking_deleted_libraries[path][library] = 1
+        except FileNotFoundError:
             # Ignore non-existent files, since the files may have changed since
             # we globbed.
-            if e.errno != errno.ENOENT:
-                sys.exit('Failed to open file: {0}'.format(path))
+            pass
+        except ProcessLookupError:
+            # If process vanishes while collecting the linked libs reading lines from
+            # the map file yields this error.
+            pass
 
     num_processes_per_library = {}
 
