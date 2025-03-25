@@ -65,7 +65,9 @@ def _write_pending_upgrades(registry, cache, exclusions):
     candidates = {
         p.candidate
         for p in cache
-        if p.is_upgradable and not p.phasing_applied and p.name not in exclusions
+        if p.is_upgradable and p.name not in exclusions
+        # Package.phasing_applied is not available in debian bookworm
+        # if p.is_upgradable and not p.phasing_applied and p.name not in exclusions
     }
     for candidate in candidates:
         logging.debug(
@@ -90,8 +92,9 @@ def _write_held_upgrades(registry, cache, exclusions):
         if (
             p.is_upgradable
             and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
-            and not p.phasing_applied
             and p.name not in exclusions
+            # Package.phasing_applied is not available in debian bookworm
+            # and not p.phasing_applied
         )
     }
     for candidate in held_candidates:
