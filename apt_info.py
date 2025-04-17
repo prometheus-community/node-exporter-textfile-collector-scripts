@@ -60,7 +60,7 @@ def _write_pending_upgrades(registry, cache):
     upgrade_list = _convert_candidates_to_upgrade_infos(candidates)
 
     g = Gauge('apt_upgrades_pending', "Apt packages pending updates by origin",
-        ['origin', 'arch'], registry=registry)
+                ['origin', 'arch'], registry=registry)
     if upgrade_list:
         for change in upgrade_list:
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
@@ -76,7 +76,7 @@ def _write_held_upgrades(registry, cache):
     upgrade_list = _convert_candidates_to_upgrade_infos(held_candidates)
 
     g = Gauge('apt_upgrades_held', "Apt packages pending updates but held back.",
-        ['origin', 'arch'], registry=registry)
+                ['origin', 'arch'], registry=registry)
     if upgrade_list:
         for change in upgrade_list:
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
