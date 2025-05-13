@@ -7,10 +7,11 @@
 # */5 * * * * prometheus directory-size.sh /var/lib/prometheus | sponge /var/lib/node_exporter/directory_size.prom
 #
 # sed pattern taken from https://www.robustperception.io/monitoring-directory-sizes-with-the-textfile-collector/
+# awk logic from by https://stackoverflow.com/a/10221507
 #
 # Author: Antoine Beaupré <anarcat@debian.org>
 
 echo "# HELP node_directory_size_bytes Disk space used by some directories"
 echo "# TYPE node_directory_size_bytes gauge"
 du --block-size=1 --summarize "$@" \
-  | awk '{ print "node_directory_size_bytes{directory=\"" $2 "\"} "  $1 }'
+  | awk '{ sz = $1; $1 = ""; print "node_directory_size_bytes{directory=\"" substr($0, 2) "\"} "  sz }'
