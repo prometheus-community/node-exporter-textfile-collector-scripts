@@ -1,0 +1,62 @@
+#!/usr/bin/awk -f
+
+#
+# Converts output of `ipmitool dcmi power reading` to prometheus format.
+#
+# With GNU awk:
+#   ipmitool dcmi power reading | ./ipmitool_dcmi > dcmi.prom
+
+# With BSD awk:
+#   ipmitool dcmi power reading | awk -f ./ipmitool_dcmi > dcmi.prom
+#
+
+BEGIN {
+    namespace = "node_ipmi_dcmi_power_";
+
+    power_count = 0;
+    sample_period = 0;
+}
+
+# Parse power readings
+/Instantaneous power reading:[ ]+[0-9]+ Watts/ {
+    power["instantaneous"] = $4;
+    power_count++;
+}
+
+/Minimum during sampling period:[ ]+[0-9]+ Watts/ {
+    power["minimum"] = $5;
+    power_count++;
+}
+
+/Maximum during sampling period:[ ]+[0-9]+ Watts/ {
+    power["maximum"] = $5;
+    power_count++;
+}
+
+/Average power reading over sample period:[ ]+[0-9]+ Watts/ {
+    power["average"] = $7;
+    power_count++;
+}
+
+# Parse sampling period
+/Sampling period:[ ]+[0-9]+ Seconds/ {
+    sample_period = $3;
+}
+
+END {
+    if (power_count > 0) {
+        printf("# HELP %swatts Power reading from ipmitool dcmi\n", namespace);
+        printf("# TYPE %swatts gauge\n", namespace);
+
+        for (type in power) {
+            printf("%swatts{type=\"%s\"} %s\n", namespace, type, power[type]);
+        }
+    }
+
+    if (sample_period > 0) {
+        printf("# HELP %ssample_period_seconds Sampling period for aggregate power readings\n", namespace);
+        printf("# TYPE %ssample_period_seconds counter\n", namespace);
+        printf("%ssample_period_seconds %d\n", namespace, sample_period);
+    }
+}
+
