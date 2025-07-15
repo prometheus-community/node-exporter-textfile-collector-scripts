@@ -377,7 +377,7 @@ def collect_ata_metrics(device):
 
         # Some device models report "---" in the threshold value where most
         # devices would report "000". We do the substitution here because
-        # downstream code expects values to be convertable to integer.
+        # downstream code expects values to be convertible to integer.
         if entry['threshold'] == '---':
             entry['threshold'] = '0'
 
