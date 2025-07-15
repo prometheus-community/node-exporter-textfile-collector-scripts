@@ -37,14 +37,14 @@ def exit_error(msg):
 
 
 def exit_clean():
-    global METRICS
+    global METRICS  # noqa: F824
     for mk, mv in METRICS.items():
         print('{}_{}\t{}'.format(METRIC_PREFIX, mk, mv))
     sys.exit(0)
 
 
 def add_metric(metric, labels, value):
-    global METRICS
+    global METRICS  # noqa: F824
     labelstrs = []
     for lk, lv in labels.items():
         labelstrs += ['{}="{}"'.format(lk, lv)]
