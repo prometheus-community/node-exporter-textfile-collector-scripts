@@ -137,7 +137,15 @@ def exec_nvme(*args):
     in child process environment so that the nvme tool does not perform any locale-specific number
     or date formatting, etc.
     """
-    cmd = ["nvme", *args]
+    nvme_command = None
+    for sys_path in ['/usr/sbin', '/usr/bin', '/usr/local/sbin', '/usr/local/bin']:
+        nvme_command = os.path.join(sys_path, 'nvme')
+        if os.path.isfile(nvme_command):
+            break
+        nvme_command = None
+    if not nvme_command:
+        raise FileNotFoundError("Did not find command path for {}".format(nvme_command))
+    cmd = [nvme_command, *args]
     return subprocess.check_output(cmd, stderr=subprocess.PIPE, env=dict(os.environ, LC_ALL="C"))
 
 
