@@ -131,6 +131,21 @@ metrics = {
 }
 
 
+def nvme_has_verbose():
+    """
+    Old nvme-cli versions like 2.3 on Debian 12 don't have --verbose for smart-log command
+    We need to check if --verbose is supported. This command will report usage to stderr
+    Consider we have a recent version if something goes wrong
+    """
+    try:
+        result = subprocess.run(["nvme", "smart-log", "--help"], check=False, capture_output=True)
+        if "--verbose" not in str(result.stderr):
+            return False
+        return True
+    except subprocess.CalledProcessError:
+        return True
+
+
 def exec_nvme(*args):
     """
     Execute nvme CLI tool with specified arguments and return captured stdout result. Set LC_ALL=C
@@ -141,7 +156,7 @@ def exec_nvme(*args):
     return subprocess.check_output(cmd, stderr=subprocess.PIPE, env=dict(os.environ, LC_ALL="C"))
 
 
-def exec_nvme_json(*args):
+def exec_nvme_json(*args, has_verbose):
     """
     Execute nvme CLI tool with specified arguments and return parsed JSON output.
     """
@@ -149,7 +164,12 @@ def exec_nvme_json(*args):
     # be verbose. Older versions of nvme-cli optionally produced verbose output if the --verbose
     # flag was specified. In order to avoid having to handle two different JSON schemas, always
     # add the --verbose flag.
-    output = exec_nvme(*args, "--output-format", "json", "--verbose")
+    # Note2: nvme-cli 2.3 that ships with Debian 12 has no verbose parameter for smart-log command only
+
+    if "smart-log" in args and not has_verbose:
+        output = exec_nvme(*args, "--output-format", "json")
+    else:
+        output = exec_nvme(*args, "--output-format", "json", "--verbose")
     return json.loads(output)
 
 
@@ -161,7 +181,8 @@ def main():
         cli_version = "unknown"
     metrics["nvmecli"].labels(cli_version).set(1)
 
-    device_list = exec_nvme_json("list")
+    has_verbose = nvme_has_verbose()
+    device_list = exec_nvme_json("list", has_verbose=has_verbose)
 
     for device in device_list["Devices"]:
         for subsys in device["Subsystems"]:
@@ -187,7 +208,9 @@ def main():
                     # FIXME: The smart-log should only need to be fetched once per controller, not
                     # per namespace. However, in order to preserve legacy metric labels, fetch it
                     # per namespace anyway. Most consumer grade SSDs will only have one namespace.
-                    smart_log = exec_nvme_json("smart-log", os.path.join("/dev", device_name))
+                    smart_log = exec_nvme_json(
+                        "smart-log", os.path.join("/dev", device_name), has_verbose=has_verbose
+                    )
 
                     # Various counters in the NVMe specification are 128-bit, which would have to
                     # discard resolution if converted to a JSON number (i.e., float64_t). Instead,
@@ -208,9 +231,14 @@ def main():
                     metrics["avail_spare"].labels(device_name).set(smart_log["avail_spare"] / 100)
                     metrics["spare_thresh"].labels(device_name).set(smart_log["spare_thresh"] / 100)
                     metrics["percent_used"].labels(device_name).set(smart_log["percent_used"] / 100)
-                    metrics["critical_warning"].labels(device_name).set(
-                        smart_log["critical_warning"]["value"]
-                    )
+                    if has_verbose:
+                        metrics["critical_warning"].labels(device_name).set(
+                            smart_log["critical_warning"]["value"]
+                        )
+                    else:
+                        metrics["critical_warning"].labels(device_name).set(
+                            smart_log["critical_warning"]
+                        )
                     metrics["media_errors"].labels(device_name).inc(int(smart_log["media_errors"]))
                     metrics["num_err_log_entries"].labels(device_name).inc(
                         int(smart_log["num_err_log_entries"])
@@ -246,6 +274,7 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print("ERROR: {}".format(e), file=sys.stderr)
+        raise
         sys.exit(1)
 
     print(generate_latest(registry).decode(), end="")
