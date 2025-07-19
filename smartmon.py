@@ -177,6 +177,83 @@ metrics = {
         namespace=namespace,
         registry=registry,
     ),
+    "available_spare_ratio": Gauge(
+        "available_spare_ratio",
+        "SMART metric available_spare_ratio",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "available_spare_threshold_ratio": Gauge(
+        "available_spare_threshold_ratio",
+        "SMART metric available_spare_threshold_ratio",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "percentage_used_ratio": Gauge(
+        "percentage_used_ratio",
+        "SMART metric percentage_used_ratio",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "power_cycles_total": Gauge(
+        "power_cycles_total",
+        "SMART metric power_cycles_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "power_on_hours_total": Gauge(
+        "power_on_hours_total",
+        "SMART metric power_on_hours_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "temperature_celcius": Gauge(
+        "temperature_celcius",
+        "SMART metric temperature_celcius",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "unsafe_shutdowns_total": Gauge(
+        "unsafe_shutdowns_total",
+        "SMART metric unsafe_shutdowns_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "media_errors_total": Gauge(
+        "media_errors_total",
+        "SMART metric media_errors_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "num_err_log_entries_total": Gauge(
+        "num_err_log_entries_total",
+        "SMART metric num_err_log_entries_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "warning_temperature_time_total": Gauge(
+        "warning_temperature_time_total",
+        "SMART metric warning_temperature_time_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
+    "critical_temperature_time_total": Gauge(
+        "critical_temperature_time_total",
+        "SMART metric critical_temperature_time_total",
+        ["device", "disk"],
+        namespace=namespace,
+        registry=registry,
+    ),
 }
 
 SmartAttribute = collections.namedtuple('SmartAttribute', [
@@ -290,6 +367,11 @@ def device_smart_capabilities(device):
             (bool): True whenever SMART is available, False otherwise.
             (bool): True whenever SMART is enabled, False otherwise.
     """
+
+    # NVME devices are SMART capable
+    if device.type == 'nvme':
+        return True, True
+
     groups = device_info(device)
 
     state = {
@@ -409,7 +491,67 @@ def collect_ata_error_count(device):
     ).set(error_count)
 
 
-def collect_disks_smart_metrics(wakeup_disks, by_id):
+def collect_nvme_metrics(device):
+    # Fetch NVME metrics
+    attributes = smart_ctl(
+        '--attributes', *device.smartctl_select()
+    )
+
+    # replace multiple occurrences of whitespaces with a single whitespace
+    attributes = re.sub(r'[\t\x20]+', ' ', attributes)
+
+    # Turn smartctl output into a list of lines and skip to the table of
+    # SMART attributes.
+    attribute_lines = attributes.strip().split('\n')[6:]
+    for line in attribute_lines:
+        label, value = line.split(':')
+        if label == 'Available Spare':
+            metrics['available_spare_ratio'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value[0:-1])
+        elif label == 'Available Spare Threshold':
+            metrics['available_spare_threshold_ratio'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value[0:-1])
+        elif label == 'Percentage Used':
+            metrics['percentage_used_ratio'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value[0:-1])
+        elif label == 'Power Cycle':
+            metrics['power_cycles_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+        elif label == 'Power On Hours':
+            metrics['power_on_hours_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value.replace(',', ''))
+        elif label == 'Temperature':
+            metrics['temperature_celcius'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value.replace(' Celsius', ''))
+        elif label == 'Unsafe Shutdowns':
+            metrics['unsafe_shutdowns_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+        elif label == 'Media and Data Integrity Errors':
+            metrics['media_errors_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+        elif label == 'Error Information Log Entries':
+            metrics['num_err_log_entries_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+        elif label == 'Warning Comp. Temperature Time':
+            metrics['warning_temperature_time_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+        elif label == 'Critical Comp. Temperature Time':
+            metrics['critical_temperature_time_total'].labels(
+                device.base_labels["device"], device.base_labels["disk"]
+            ).set(value)
+
+
+def collect_disks_smart_metrics(wakeup_disks, by_id, include_nvme):
     for device in find_devices(by_id):
         is_active = device_is_active(device)
         metrics["device_active"].labels(
@@ -443,6 +585,9 @@ def collect_disks_smart_metrics(wakeup_disks, by_id):
             collect_ata_metrics(device)
             collect_ata_error_count(device)
 
+        if include_nvme and device.type == 'nvme':
+            collect_nvme_metrics(device)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -450,11 +595,13 @@ def main():
                         help="Wake up disks to collect live stats")
     parser.add_argument('--by-id', dest='by_id', action='store_true',
                         help="Use /dev/disk/by-id/X instead of /dev/sdX to index devices")
+    parser.add_argument('--include-nvme', dest='include_nvme', action='store_true',
+                        help="Include metrics for NVMe drives")
     args = parser.parse_args(sys.argv[1:])
 
     metrics["smartctl_version"].labels(smart_ctl_version()).set(1)
 
-    collect_disks_smart_metrics(args.wakeup_disks, args.by_id)
+    collect_disks_smart_metrics(args.wakeup_disks, args.by_id, args.include_nvme)
     print(generate_latest(registry).decode(), end="")
 
 
