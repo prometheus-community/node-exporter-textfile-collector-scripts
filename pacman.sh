@@ -13,10 +13,10 @@ set -o pipefail
 
 if [ -x /usr/bin/checkupdates ]
 then
-    updates=$(/usr/bin/checkupdates | wc -l)
+    updates=$( (checkupdates || true) | wc -l)
     cache=0
 else
-    if ! updates=$(/usr/bin/pacman -Qu | wc -l)
+	if ! updates=$( (/usr/bin/pacman -Qu || true) | wc -l)
     then
         updates=0
     fi
