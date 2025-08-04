@@ -1,0 +1,33 @@
+  pool: rpool
+ state: DEGRADED
+status: One or more devices could not be opened.  Sufficient replicas exist for
+        the pool to continue functioning in a degraded state.
+action: Attach the missing device and online it using 'zpool online'.
+   see: http://www.sun.com/msg/ZFS-8000-2Q
+  scan: resilvered 1.41M in 0h0m with 0 errors on Tue Nov 15 05:31:36 2011
+config:
+
+        NAME          STATE     READ WRITE CKSUM
+        rpool         DEGRADED     0     0     0
+          mirror-0    DEGRADED     0     0     0
+            c4d1s0    UNAVAIL      0     0     0  cannot open
+            c2t1d0s0  ONLINE       0     0     0
+            c3d1s0    UNAVAIL      0     0     0  cannot open
+
+errors: No known data errors
+
+  pool: zpool
+ state: UNAVAIL
+status: One or more devices could not be opened.  There are insufficient
+        replicas for the pool to continue functioning.
+action: Attach the missing device and online it using 'zpool online'.
+   see: http://www.sun.com/msg/ZFS-8000-3C
+  scan: none requested
+config:
+
+        NAME          STATE     READ WRITE CKSUM
+        zpool         UNAVAIL      0     0     0  insufficient replicas
+          raidz1-0    UNAVAIL      0     0     0  insufficient replicas
+            c2t1d0p2  ONLINE       0     0     0
+            c4d1p2    UNAVAIL      0     0     0  cannot open
+            c3d1p2    UNAVAIL      0     0     0  cannot open

@@ -1,0 +1,24 @@
+  pool: freenas-boot
+ state: ONLINE
+  scan: scrub repaired 0 in 0h2m with 0 errors on Wed Jan 25 03:47:27 2017
+config:
+
+        NAME        STATE     READ WRITE CKSUM
+        freenas-boot  ONLINE       0     0     0
+          da0p2     ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: nas_zfs_vol0
+ state: ONLINE
+  scan: scrub repaired 0 in 7h7m with 0 errors on Sun Jan  8 07:07:22 2017
+config:
+
+        NAME                                            STATE     READ WRITE CKSUM
+        nas_zfs_vol0                                    ONLINE       0     0     0
+          mirror-0                                      ONLINE       0     0     0
+            gptid/a855d0c8-5218-11e3-9e38-10604b926998  ONLINE       0     0     0
+            gptid/a8c3fe2f-5218-11e3-9e38-10604b926998  ONLINE       0     0     0
+          mirror-1                                      ONLINE       0     0     0
+            gptid/a91ebd06-5218-11e3-9e38-10604b926998  ONLINE       0     0     0
+            gptid/a96f4d37-5218-11e3-9e38-10604b926998  ONLINE       0     0     0
