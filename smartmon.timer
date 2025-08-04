@@ -1,0 +1,8 @@
+[Unit]
+Description=Gather S.M.A.R.T. metrics every minute to be picked up by prometheus node exporter
+
+[Timer]
+OnCalendar=*-*-* *:0/01:00
+
+[Install]
+WantedBy=timers.target
