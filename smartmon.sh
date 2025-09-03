@@ -109,7 +109,7 @@ parse_smartctl_scsi_attributes() {
 }
 
 parse_smartctl_info() {
-  local -i smart_available=0 smart_enabled=0 smart_healthy=
+  local -i smart_available=0 smart_enabled=0 smart_healthy=-1
   local disk="$1" disk_type="$2"
   local model_family='' device_model='' serial_number='' fw_version='' vendor='' product='' revision='' lun_id=''
   while read -r line; do
@@ -147,7 +147,12 @@ parse_smartctl_info() {
   echo "device_info{disk=\"${disk}\",type=\"${disk_type}\",vendor=\"${vendor}\",product=\"${product}\",revision=\"${revision}\",lun_id=\"${lun_id}\",model_family=\"${model_family}\",device_model=\"${device_model}\",serial_number=\"${serial_number}\",firmware_version=\"${fw_version}\"} 1"
   echo "device_smart_available{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_available}"
   echo "device_smart_enabled{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_enabled}"
-  [[ "${smart_healthy}" != "" ]] && echo "device_smart_healthy{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_healthy}"
+  [[ "${smart_healthy}" != "-1" ]] && echo "device_smart_healthy{disk=\"${disk}\",type=\"${disk_type}\"} ${smart_healthy}"
+  if [[ "${smart_available}" == 1 ]]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 output_format_awk="$(
@@ -188,8 +193,8 @@ for device in ${device_list}; do
   echo "device_active{disk=\"${disk}\",type=\"${type}\"}" "${active}"
   # Skip further metrics to prevent the disk from spinning up
   test ${active} -eq 0 && continue
-  # Get the SMART information and health
-  smartctl -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}"
+  # Get the SMART information and health; if the device doesn't support SMART, skip to next device
+  smartctl -i -H -d "${type}" "${disk}" | parse_smartctl_info "${disk}" "${type}" || continue
   # Get the SMART attributes
   case ${type} in
   sat) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
