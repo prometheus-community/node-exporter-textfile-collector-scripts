@@ -10,6 +10,7 @@ import sys
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 device_info_re = re.compile(r'^(?P<k>[^:]+?)(?:(?:\sis|):)\s*(?P<v>.*)$')
+COMPAT_DISK_LABELS = False
 
 ata_error_count_re = re.compile(
     r'^Error (\d+) \[\d+\] occurred', re.MULTILINE)
@@ -194,6 +195,8 @@ class Device(collections.namedtuple('DeviceBase', 'path opts')):
 
     @property
     def base_labels(self):
+        if COMPAT_DISK_LABELS:
+            return {'disk': self.path, 'device': self.type.partition('+')[2] or '0'}
         return {'device': self.path, 'disk': self.type.partition('+')[2] or '0'}
 
     def smartctl_select(self):
@@ -445,12 +448,17 @@ def collect_disks_smart_metrics(wakeup_disks, by_id):
 
 
 def main():
+    global COMPAT_DISK_LABELS
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--wakeup-disks', dest='wakeup_disks', action='store_true',
                         help="Wake up disks to collect live stats")
     parser.add_argument('--by-id', dest='by_id', action='store_true',
                         help="Use /dev/disk/by-id/X instead of /dev/sdX to index devices")
+    parser.add_argument('--compat-disk-labels', dest='compat_disk_labels', action='store_true', help='Invert disk and device labels to be retrocompatible with shell implementation')
     args = parser.parse_args(sys.argv[1:])
+
+    COMPAT_DISK_LABELS=args.compat_disk_labels
 
     metrics["smartctl_version"].labels(smart_ctl_version()).set(1)
 
