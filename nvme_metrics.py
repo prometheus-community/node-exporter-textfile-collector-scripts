@@ -167,10 +167,18 @@ def exec_nvme_json(*args, has_verbose):
     # Note2: nvme-cli 2.3 that ships with Debian 12 has
     # no verbose parameter for smart-log command only
 
-    if "smart-log" in args and not has_verbose:
-        output = exec_nvme(*args, "--output-format", "json")
-    else:
-        output = exec_nvme(*args, "--output-format", "json", "--verbose")
+    try:
+        if "smart-log" in args and not has_verbose:
+            output = exec_nvme(*args, "--output-format", "json")
+        else:
+            output = exec_nvme(*args, "--output-format", "json", "--verbose")
+    except subprocess.CalledProcessError as exc:
+        try:
+            output = json.loads(exc.output)
+            if "Failed to scan topology" in output["error"]:
+                return {"Devices": []}
+        except json.JSONDecodeError:
+            raise ValueError("Cannot parse nvme binary output")
     return json.loads(output)
 
 
