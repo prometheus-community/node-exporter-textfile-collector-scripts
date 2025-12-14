@@ -7,7 +7,7 @@ import os
 tables = ['filter', 'nat', 'mangle', 'raw']
 re_chain = re.compile('^Chain')
 re_header = re.compile('^pkts')
-re_blankline = re.compile('^\s+$')
+re_blankline = re.compile('^(?:^ *\n)+$')
 
 iptables_packet_lines = []
 iptables_byte_lines = []
