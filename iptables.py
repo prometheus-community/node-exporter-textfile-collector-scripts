@@ -3,10 +3,6 @@
 import subprocess
 import re
 import os
-import argparse
-
-# Change to your collector.textfile.directory
-prom_outfile = '/var/lib/prometheus/node-exporter/iptables_collector.prom'
 
 tables = ['filter', 'nat', 'mangle', 'raw']
 re_chain = re.compile('^Chain')
@@ -55,29 +51,12 @@ for table in tables:
     iptables_packet_lines.append('iptables_packets_total{table="%s",chain="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (table,l_chain_name,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_packets))
     iptables_byte_lines.append('iptables_bytes_total{table="%s",chain="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (table,l_chain_name,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_bytes))
 
+print('# HELP iptables_packets_total packet counters for iptable rules.')
+print('# TYPE iptables_packets_total counter')
+for line in iptables_packet_lines:
+    print(line)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', action='store_true', help='debug iptables_collector output')
-args = parser.parse_args()
-
-if args.debug:
-    print('# HELP iptables_packets_total packet counters for iptable rules.')
-    print('# TYPE iptables_packets_total counter')
-    for line in iptables_packet_lines:
-        print(line)
-
-    print('# HELP iptables_bytes_total byte counters for iptable rules.')
-    print('# TYPE iptables_bytes_total counter')
-    for line in iptables_byte_lines:
-        print(line)
-else:
-    with open(prom_outfile, 'w') as prom_out:
-        print('# HELP iptables_packets_total packet counters for iptable rules.', file=prom_out)
-        print('# TYPE iptables_packets_total counter', file=prom_out)
-        for line in iptables_packet_lines:
-            print(line, file=prom_out)
-
-        print('# HELP iptables_bytes_total byte counters for iptable rules.', file=prom_out)
-        print('# TYPE iptables_bytes_total counter', file=prom_out)
-        for line in iptables_byte_lines:
-            print(line, file=prom_out)
+print('# HELP iptables_bytes_total byte counters for iptable rules.')
+print('# TYPE iptables_bytes_total counter')
+for line in iptables_byte_lines:
+    print(line)
