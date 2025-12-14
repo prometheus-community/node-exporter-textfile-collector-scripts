@@ -2,7 +2,6 @@
 
 import subprocess
 import re
-import os
 
 def gather_tables():
     tables = ['filter', 'nat', 'mangle', 'raw']
