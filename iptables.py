@@ -55,13 +55,13 @@ def gather_tables():
             iptables_packet_lines.append('%s_packets_total{table="%s",chain="%s",line_number=%s,target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (ip_proto,table,l_chain_name,l_line_number,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_packets))
             iptables_byte_lines.append('%s_bytes_total{table="%s",chain="%s",line_number=%s,target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (ip_proto,table,l_chain_name,l_line_number,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_bytes))
 
-        iptables_packet_lines.append(f'# HELP {ip_proto}_packets_total packet counters for {ip_proto} rules.')
-        iptables_packet_lines.append(f'# TYPE {ip_proto}_packets_total counter')
+        packet_lines_helper = f'# HELP {ip_proto}_packets_total packet counters for {ip_proto} rules.'
+        packet_lines_type = f'# TYPE {ip_proto}_packets_total counter'
 
-        iptables_byte_lines.append(f'# HELP {ip_proto}_bytes_total byte counters for {ip_proto} rules.')
-        iptables_byte_lines.append(f'# TYPE {ip_proto}_bytes_total counter')
+        byte_lines_helper = f'# HELP {ip_proto}_bytes_total byte counters for {ip_proto} rules.'
+        byte_lines_type = f'# TYPE {ip_proto}_bytes_total counter'
 
-        return '\n'.join(iptables_packet_lines) + '\n' + '\n'.join(iptables_byte_lines)
+        return f"{packet_lines_helper}\n{packet_lines_type}\n{'\n'.join(iptables_packet_lines)}\n{byte_lines_helper}\n{byte_lines_type}\n{'\n'.join(iptables_byte_lines)}"
 
 if __name__ == "__main__":
     print(gather_tables())
