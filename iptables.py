@@ -17,6 +17,12 @@ iptables_packet_lines = []
 iptables_byte_lines = []
 
 for table in tables:
+  # Run iptables with the following options:
+  # -L: Listing all rules for chain
+  # -n: Numeric lookup
+  # -v: Verbose output
+  # -x: Exact values
+  # -t table: Specified table table
   cmd = ['/sbin/iptables', '-L', '-n', '-v', '-x', '-t', table]
   proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   for line in proc.stdout.readlines():
@@ -27,10 +33,12 @@ for table in tables:
 
     line_pieces = line.split()
 
+    # Check if line is the beginning of a chain
     if re_chain.match(str(line_pieces[0])):
       l_chain_name = line_pieces[1]
       continue
 
+    # Check if the line is the header for the given chain
     if re_header.match(str(line_pieces[0])):
       continue
 
