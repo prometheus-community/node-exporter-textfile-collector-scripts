@@ -60,6 +60,7 @@ def gather_tables():
                       f"in=\"{l_in}\"",
                       f"out=\"{l_out}\"",
                       f"chain=\"{l_dest}\"",
+                      f"src=\"{l_src}\""
                       f"line_number=\"{l_dest}\"",
                       f"options=\"{l_options}\""
                       ]
