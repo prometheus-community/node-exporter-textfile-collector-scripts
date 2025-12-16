@@ -14,31 +14,31 @@ def gather_tables():
 
     for ip_proto in ["iptables", "ip6tables"]:
         for table in tables:
-          # Run iptables with the following options:
-          # -L: Listing all rules for chain
-          # -n: Numeric lookup
-          # -v: Verbose output
-          # -x: Exact values
-          # -t table: Specified table table
-          # --line-numbers: Show line numbers
-          cmd = [f'/sbin/{ip_proto}', '-L', '-n', '-v', '-x', '-t', table, "--line-numbers"]
-          proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-          for line in proc.stdout.readlines():
-            line = line.decode('utf8')
+            # Run iptables with the following options:
+            # -L: Listing all rules for chain
+            # -n: Numeric lookup
+            # -v: Verbose output
+            # -x: Exact values
+            # -t table: Specified table table
+            # --line-numbers: Show line numbers
+            cmd = [f'/sbin/{ip_proto}', '-L', '-n', '-v', '-x', '-t', table, "--line-numbers"]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            for line in proc.stdout.readlines():
+              line = line.decode('utf8')
 
             if re_blankline.match(str(line)):
-              continue
+                continue
 
             line_pieces = line.split()
 
             # Check if line is the beginning of a chain
             if re_chain.match(str(line_pieces[0])):
-              l_chain_name = line_pieces[1]
-              continue
+                l_chain_name = line_pieces[1]
+                continue
 
             # Check if the line is the header for the given chain
             if re_header.match(str(line_pieces[0])):
-              continue
+                continue
 
             l_line_number = line_pieces[0]
             l_packets = line_pieces[1]
@@ -52,8 +52,14 @@ def gather_tables():
             l_options = ' '.join(line_pieces[10:]).replace('"','\\"')
 
             # To the best of my knowledge, this can't be an fstring
-            iptables_packet_lines.append('%s_packets_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (ip_proto,table,l_chain_name,l_line_number,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_packets))
-            iptables_byte_lines.append('%s_bytes_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' % (ip_proto,table,l_chain_name,l_line_number,l_target,l_prot,l_in,l_out,l_src,l_dest,l_options,l_bytes))
+            iptables_packet_lines.append(
+                '%s_packets_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' %
+                (ip_proto,table, l_chain_name, l_line_number, l_target, l_prot, l_in, l_out, l_src, l_dest, l_options, l_packets)
+            )
+            iptables_byte_lines.append(
+                '%s_bytes_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' %
+                (ip_proto, table, l_chain_name, l_line_number, l_target, l_prot, l_in, l_out, l_src, l_dest, l_options, l_bytes)
+            )
 
         packet_lines_helper = f'# HELP {ip_proto}_packets_total packet counters for {ip_proto} rules.'
         packet_lines_type = f'# TYPE {ip_proto}_packets_total counter'
@@ -61,7 +67,12 @@ def gather_tables():
         byte_lines_helper = f'# HELP {ip_proto}_bytes_total byte counters for {ip_proto} rules.'
         byte_lines_type = f'# TYPE {ip_proto}_bytes_total counter'
 
-        return f"{packet_lines_helper}\n{packet_lines_type}\n{'\n'.join(iptables_packet_lines)}\n{byte_lines_helper}\n{byte_lines_type}\n{'\n'.join(iptables_byte_lines)}"
+        return (f"{packet_lines_helper}\n"
+                f"{packet_lines_type}\n"
+                f"{'\n'.join(iptables_packet_lines)}\n"
+                f"{byte_lines_helper}\n"
+                f"{byte_lines_type}\n"
+                f"{'\n'.join(iptables_byte_lines)}")
 
 if __name__ == "__main__":
     print(gather_tables())
