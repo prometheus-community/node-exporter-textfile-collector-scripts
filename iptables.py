@@ -3,6 +3,7 @@
 import subprocess
 import re
 
+
 def gather_tables():
     tables = ['filter', 'nat', 'mangle', 'raw']
     re_chain = re.compile('^Chain')
@@ -86,6 +87,7 @@ def gather_tables():
                 f"{byte_lines_helper}\n"
                 f"{byte_lines_type}\n"
                 f"{'\n'.join(iptables_byte_lines)}")
+
 
 if __name__ == "__main__":
     print(gather_tables())
