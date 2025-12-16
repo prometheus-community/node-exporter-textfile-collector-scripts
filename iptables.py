@@ -50,7 +50,7 @@ def gather_tables():
             l_out = line_pieces[7]
             l_src = line_pieces[8]
             l_dest = line_pieces[9]
-            l_options = ' '.join(line_pieces[10:]).replace('"','\\"')
+            l_options = ' '.join(line_pieces[10:]).replace('"', '\\"')
 
             labels = [f"table=\"{table}\"",
                       f"chain=\"{l_chain_name}\"",
