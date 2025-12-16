@@ -51,14 +51,27 @@ def gather_tables():
             l_dest = line_pieces[9]
             l_options = ' '.join(line_pieces[10:]).replace('"','\\"')
 
+            labels = [f"table=\"{table}\"",
+                      f"chain=\"{l_chain_name}\"",
+                      f"line_number=\"{l_line_number}\"",
+                      f"target=\"{l_target}\"",
+                      f"prot=\"{l_prot}\"",
+                      f"in=\"{l_in}\"",
+                      f"out=\"{l_out}\"",
+                      f"chain=\"{l_dest}\"",
+                      f"line_number=\"{l_dest}\"",
+                      f"options=\"{l_options}\""
+                      ]
+
             # To the best of my knowledge, this can't be an fstring
             iptables_packet_lines.append(
-                '%s_packets_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' %
-                (ip_proto,table, l_chain_name, l_line_number, l_target, l_prot, l_in, l_out, l_src, l_dest, l_options, l_packets)
+                '%s_packets_total{%s} %s' %
+                (ip_proto, ','.join(labels), l_packets)
             )
+
             iptables_byte_lines.append(
-                '%s_bytes_total{table="%s",chain="%s",line_number="%s",target="%s",prot="%s",in="%s",out="%s",src="%s",dest="%s",opt="%s"} %s' %
-                (ip_proto, table, l_chain_name, l_line_number, l_target, l_prot, l_in, l_out, l_src, l_dest, l_options, l_bytes)
+                '%s_bytes_total{%s} %s' %
+                (ip_proto, ','.join(labels), l_bytes)
             )
 
         packet_lines_helper = f'# HELP {ip_proto}_packets_total packet counters for {ip_proto} rules.'
