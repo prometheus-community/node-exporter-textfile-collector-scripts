@@ -25,7 +25,7 @@ def gather_tables():
             cmd = [f'/sbin/{ip_proto}', '-L', '-n', '-v', '-x', '-t', table, "--line-numbers"]
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
             for line in proc.stdout.readlines():
-              line = line.decode('utf8')
+                line = line.decode('utf8')
 
             if re_blankline.match(str(line)):
                 continue
