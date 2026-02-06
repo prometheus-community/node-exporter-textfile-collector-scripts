@@ -200,7 +200,7 @@ for device in ${device_list}; do
   usbprolific) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
   *)
       (>&2 echo "disk type is not sat, scsi, nvme or megaraid but ${type}")
-    exit
+    continue
     ;;
   esac
 done | format_output
