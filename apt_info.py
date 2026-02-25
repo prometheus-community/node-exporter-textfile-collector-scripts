@@ -94,13 +94,20 @@ def _write_autoremove_pending(registry, cache):
 def _write_cache_timestamps(registry):
     g = Gauge('apt_package_cache_timestamp_seconds', "Apt update last run time.", registry=registry)
     apt_pkg.init_config()
-    if (
-        apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists") and
-        os.path.isfile("/var/lib/apt/periodic/update-success-stamp")
-    ):
-        # if we run updates automatically with APT::Periodic, we can
-        # check this timestamp file if it exists
+    if os.path.isfile("/var/lib/apt/periodic/update-success-stamp"):
+        # this file is often used as a flag file for sucessful runs on
+        # systems that do not use apt-periodic features, namely
+        # apt-config-auto-update and the Puppetlabs "apt" puppet
+        # module.
+        #
+        # Example configuration:
+        #
+        # APT::Update::Post-Invoke-Success {"touch /var/lib/apt/periodic/update-success-stamp";};
         stamp_file = "/var/lib/apt/periodic/update-success-stamp"
+    elif apt_pkg.config.find_b("APT::Periodic::Update-Package-Lists"):
+        # if we run updates automatically with APT::Periodic, we can
+        # check this timestamp file
+        stamp_file = "/var/lib/apt/periodic/update-stamp"
     else:
         # if not, let's just fallback on the partial file of the lists directory
         stamp_file = '/var/lib/apt/lists/partial'
