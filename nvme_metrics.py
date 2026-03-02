@@ -74,6 +74,9 @@ metrics = {
         "Device error log entry count",
         ["device"], namespace=namespace, registry=registry,
     ),
+    # FIXME: The "nvmecli" metric ought to be an Info type, not a Gauge. However, making this change
+    # will result in the metric having a "_info" suffix automatically appended, which is arguably
+    # a breaking change.
     "nvmecli": Gauge(
         "nvmecli",
         "nvme-cli tool information",
@@ -142,7 +145,11 @@ def exec_nvme_json(*args):
     """
     Execute nvme CLI tool with specified arguments and return parsed JSON output.
     """
-    output = exec_nvme(*args, "--output-format", "json")
+    # Note: nvme-cli v2.11 effectively introduced a breaking change by forcing JSON output to always
+    # be verbose. Older versions of nvme-cli optionally produced verbose output if the --verbose
+    # flag was specified. In order to avoid having to handle two different JSON schemas, always
+    # add the --verbose flag.
+    output = exec_nvme(*args, "--output-format", "json", "--verbose")
     return json.loads(output)
 
 
@@ -157,49 +164,70 @@ def main():
     device_list = exec_nvme_json("list")
 
     for device in device_list["Devices"]:
-        device_path = device["DevicePath"]
-        device_name = os.path.basename(device_path)
+        for subsys in device["Subsystems"]:
+            for ctrl in subsys["Controllers"]:
+                for ns in ctrl["Namespaces"]:
+                    device_name = ns["NameSpace"]
 
-        metrics["device_info"].labels(
-            device_name,
-            device["ModelNumber"],
-            device["Firmware"],
-            device["SerialNumber"].strip(),
-        )
+                    # FIXME: This metric ought to be refactored into a "controller_info" metric,
+                    # since it contains information that is not unique to the namespace. However,
+                    # previous versions of this collector erroneously referred to namespaces, e.g.
+                    # "nvme0n1", as devices, so preserve the former behaviour for now.
+                    metrics["device_info"].labels(
+                        device_name,
+                        ctrl["ModelNumber"],
+                        ctrl["Firmware"],
+                        ctrl["SerialNumber"].strip(),
+                    )
 
-        metrics["sector_size"].labels(device_name).set(device["SectorSize"])
-        metrics["physical_size"].labels(device_name).set(device["PhysicalSize"])
-        metrics["used_bytes"].labels(device_name).set(device["UsedBytes"])
+                    metrics["sector_size"].labels(device_name).set(ns["SectorSize"])
+                    metrics["physical_size"].labels(device_name).set(ns["PhysicalSize"])
+                    metrics["used_bytes"].labels(device_name).set(ns["UsedBytes"])
 
-        smart_log = exec_nvme_json("smart-log", device_path)
+                    # FIXME: The smart-log should only need to be fetched once per controller, not
+                    # per namespace. However, in order to preserve legacy metric labels, fetch it
+                    # per namespace anyway. Most consumer grade SSDs will only have one namespace.
+                    smart_log = exec_nvme_json("smart-log", os.path.join("/dev", device_name))
 
-        # Various counters in the NVMe specification are 128-bit, which would have to discard
-        # resolution if converted to a JSON number (i.e., float64_t). Instead, nvme-cli marshals
-        # them as strings. As such, they need to be explicitly cast to int or float when using them
-        # in Counter metrics.
-        metrics["data_units_read"].labels(device_name).inc(int(smart_log["data_units_read"]))
-        metrics["data_units_written"].labels(device_name).inc(int(smart_log["data_units_written"]))
-        metrics["host_read_commands"].labels(device_name).inc(int(smart_log["host_read_commands"]))
-        metrics["host_write_commands"].labels(device_name).inc(
-            int(smart_log["host_write_commands"])
-        )
-        metrics["avail_spare"].labels(device_name).set(smart_log["avail_spare"] / 100)
-        metrics["spare_thresh"].labels(device_name).set(smart_log["spare_thresh"] / 100)
-        metrics["percent_used"].labels(device_name).set(smart_log["percent_used"] / 100)
-        metrics["critical_warning"].labels(device_name).set(smart_log["critical_warning"])
-        metrics["media_errors"].labels(device_name).inc(int(smart_log["media_errors"]))
-        metrics["num_err_log_entries"].labels(device_name).inc(
-            int(smart_log["num_err_log_entries"])
-        )
-        metrics["power_cycles"].labels(device_name).inc(int(smart_log["power_cycles"]))
-        metrics["power_on_hours"].labels(device_name).inc(int(smart_log["power_on_hours"]))
-        metrics["controller_busy_time"].labels(device_name).inc(
-            int(smart_log["controller_busy_time"])
-        )
-        metrics["unsafe_shutdowns"].labels(device_name).inc(int(smart_log["unsafe_shutdowns"]))
+                    # Various counters in the NVMe specification are 128-bit, which would have to
+                    # discard resolution if converted to a JSON number (i.e., float64_t). Instead,
+                    # nvme-cli marshals them as strings. As such, they need to be explicitly cast
+                    # to int or float when using them in Counter metrics.
+                    metrics["data_units_read"].labels(device_name).inc(
+                        int(smart_log["data_units_read"])
+                    )
+                    metrics["data_units_written"].labels(device_name).inc(
+                        int(smart_log["data_units_written"])
+                    )
+                    metrics["host_read_commands"].labels(device_name).inc(
+                        int(smart_log["host_read_commands"])
+                    )
+                    metrics["host_write_commands"].labels(device_name).inc(
+                        int(smart_log["host_write_commands"])
+                    )
+                    metrics["avail_spare"].labels(device_name).set(smart_log["avail_spare"] / 100)
+                    metrics["spare_thresh"].labels(device_name).set(smart_log["spare_thresh"] / 100)
+                    metrics["percent_used"].labels(device_name).set(smart_log["percent_used"] / 100)
+                    metrics["critical_warning"].labels(device_name).set(
+                        smart_log["critical_warning"]["value"]
+                    )
+                    metrics["media_errors"].labels(device_name).inc(int(smart_log["media_errors"]))
+                    metrics["num_err_log_entries"].labels(device_name).inc(
+                        int(smart_log["num_err_log_entries"])
+                    )
+                    metrics["power_cycles"].labels(device_name).inc(int(smart_log["power_cycles"]))
+                    metrics["power_on_hours"].labels(device_name).inc(
+                        int(smart_log["power_on_hours"])
+                    )
+                    metrics["controller_busy_time"].labels(device_name).inc(
+                        int(smart_log["controller_busy_time"])
+                    )
+                    metrics["unsafe_shutdowns"].labels(device_name).inc(
+                        int(smart_log["unsafe_shutdowns"])
+                    )
 
-        # NVMe reports temperature in kelvins; convert it to degrees Celsius.
-        metrics["temperature"].labels(device_name).set(smart_log["temperature"] - 273)
+                    # NVMe reports temperature in kelvins; convert it to degrees Celsius.
+                    metrics["temperature"].labels(device_name).set(smart_log["temperature"] - 273)
 
 
 if __name__ == "__main__":

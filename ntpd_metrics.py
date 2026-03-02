@@ -9,13 +9,13 @@ import sys
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 # NTP peers status, with no DNS lookups.
-ntpq_cmd = ['ntpq', '-np']
+ntpq_cmd = ['ntpq', '-np', '-W', '255']
 ntpq_rv_cmd = ['ntpq', '-c', 'rv 0 offset,sys_jitter,rootdisp,rootdelay']
 
 # Regex to match all of the fields in the output of ntpq -np
 metrics_fields = [
-    r'^(?P<status>.)(?P<remote>[\w\.]+)',
-    r'(?P<refid>[\w\.]+)',
+    r'^(?P<status>.)(?P<remote>[\w\.:]+)',
+    r'(?P<refid>[\w\.:]+)',
     r'(?P<stratum>\d+)',
     r'(?P<type>\w)',
     r'(?P<when>\d+)',

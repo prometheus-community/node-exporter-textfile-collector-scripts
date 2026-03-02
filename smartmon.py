@@ -41,10 +41,13 @@ smart_attributes_whitelist = (
     'host_writes_mib',
     'host_writes_32mib',
     'load_cycle_count',
+    'lifetime_writes_gib',
     'media_wearout_indicator',
+    'percent_lifetime_remain',
     'wear_leveling_count',
     'nand_writes_1gib',
     'offline_uncorrectable',
+    'percent_lifetime_remain',
     'power_cycle_count',
     'power_on_hours',
     'program_fail_count',
@@ -60,10 +63,14 @@ smart_attributes_whitelist = (
     'temperature_case',
     'temperature_celsius',
     'temperature_internal',
+    'total_bad_block',
     'total_lbas_read',
     'total_lbas_written',
+    'total_writes_gib',
+    'total_reads_gib',
     'udma_crc_error_count',
     'unsafe_shutdown_count',
+    'unexpect_power_loss_ct',
     'workld_host_reads_perc',
     'workld_media_wear_indic',
     'workload_minutes',
@@ -370,7 +377,7 @@ def collect_ata_metrics(device):
 
         # Some device models report "---" in the threshold value where most
         # devices would report "000". We do the substitution here because
-        # downstream code expects values to be convertable to integer.
+        # downstream code expects values to be convertible to integer.
         if entry['threshold'] == '---':
             entry['threshold'] = '0'
 
