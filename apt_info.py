@@ -172,15 +172,24 @@ def _write_packages_states(registry, cache, exclusions):
         apt_pkg.CURSTATE_NOT_INSTALLED: "not-installed",
         apt_pkg.CURSTATE_UNPACKED: "unpacked",
     }
+    # counter for the various values
+    #
+    # we don't use the inc() function here because it's too slow for
+    # the hot loop
+    states_counts = {}
     for key, value in states_to_text.items():
         g.labels(value).set(0)
+        states_counts[key] = 0
 
     for package in cache:
         label_name = states_to_text.get(package._pkg.current_state, None)
         if label_name is None:
             logging.warning("unknown package state for package %s: %s", package, package._pkg.current_state)
             continue
-        g.labels(label_name).inc()
+        states_counts[package._pkg.current_state]+=1
+
+    for key, label_name in states_to_text.items():
+        g.labels(label_name).set(states_counts[key])
 
 
 def _write_autoremove_pending(registry, cache, exclusions):
