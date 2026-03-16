@@ -116,13 +116,28 @@ def _write_held_upgrades(registry, cache, exclusions):
 
 def _write_obsolete_packages(registry, cache, exclusions):
     # This corresponds to the apt filter "?obsolete"
-    obsoletes = [p for p in cache if p.is_installed and (
-                  p.candidate is None or
-                  not p.candidate.origins or
-                  (len(p.candidate.origins) == 1 and
-                   p.candidate.origins[0].origin in ['', "/var/lib/dpkg/status"])
-                  and p.name not in exclusions
-                )]
+    obsoletes = []
+    for p in cache:
+        if p.name in exclusions:
+            continue
+        # not installed, so not obsolete
+        if not p.is_installed:
+            continue
+        # no candidate, obsolete
+        if p.candidate is None:
+            obsoletes.append(p)
+            continue
+        # cache the expensive origins lookup
+        origins = p.candidate.origins
+        # there is a candidate, but we don't have that version
+        # installed for some reason, obsolete
+        if (
+            not origins
+            or (len(origins) == 1 and origins[0].origin in ["", "/var/lib/dpkg/status"])
+        ):
+            obsoletes.append(p)
+            continue
+
     for package in obsoletes:
         if package.candidate is None:
             logging.debug("obsolete package with no candidate: %s", package)
