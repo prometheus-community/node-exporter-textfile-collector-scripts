@@ -42,11 +42,15 @@ def _convert_candidates_to_upgrade_infos(candidates):
         # to filter the candidates on those kinds of conditions before reaching
         # here so here we don't want to include this information in order to
         # reduce noise in the data.
-        origins = sorted(
-            {f"{o.origin}:{o.codename}/{o.archive}" for o in candidate.origins
-             if o.archive != 'now'}
-        )
-        changes_dict[",".join(origins)][candidate.architecture] += 1
+        origins = set()
+        # this is like candidate.origins, but without the expensive
+        # find_index() that we do not need
+        for f, _ in candidate._cand.file_list:
+            if f.archive == "now":
+                continue
+            origins.add(f"{f.origin}:{f.codename}/{f.archive}")
+
+        changes_dict[",".join(sorted(origins))][candidate.architecture] += 1
 
     changes_list = list()
     for origin in sorted(changes_dict.keys()):
@@ -69,14 +73,20 @@ def is_obsolete(p):
     # no candidate, obsolete
     if p.candidate is None:
         return True
-    # cache the expensive origins lookup
-    origins = p.candidate.origins
+    # replace the expensive candidate.origins lookup
+    #
+    # we do this because the Origin constructor performs an expensive
+    # find_index() call every time, which we do not need
+    origins = p.candidate._cand.file_list
     # there is a candidate, but we don't have that version
     # installed for some reason, obsolete
-    if (
-        not origins
-        or (len(origins) == 1 and origins[0].origin in ["", "/var/lib/dpkg/status"])
-    ):
+    if not origins:
+        return True
+    # origins[0] is the first origin of the file_list and
+    # origins[0][0] is a lookup through the `file_list`, which returns
+    # a (PackageFile, offset) tuple, and the PackageFile is what we're
+    # interested in.
+    if len(origins) == 1 and origins[0][0].origin in ["", "/var/lib/dpkg/status"]:
         return True
 
 
@@ -145,7 +155,7 @@ def _write_packages_states(registry, cache, exclusions):
         if package.is_auto_removable:
             autoremovable_packages.add(package.candidate)
 
-        if is_obsolete(package):
+        if package.is_installed and is_obsolete(package):
             obsoletes.append(package)
 
         # Package.phasing_applied is not available in debian bookworm
