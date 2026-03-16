@@ -138,6 +138,51 @@ def _write_obsolete_packages(registry, cache, exclusions):
     g.set(len(obsoletes))
 
 
+def _write_packages_states(registry, cache, exclusions):
+    g = Gauge('apt_packages_count', "Apt packages count.", ['state'], registry=registry)
+
+    # apt_pkg.CURSTATE_CONFIG_FILES
+    #
+    #     Only the configuration files of the package exist on the system.
+    #
+    # apt_pkg.CURSTATE_HALF_CONFIGURED
+    #
+    #     The package is unpacked and configuration has been started, but not yet completed.
+    #
+    # apt_pkg.CURSTATE_HALF_INSTALLED
+    #
+    #     The installation of the package has been started, but not completed.
+    #
+    # apt_pkg.CURSTATE_INSTALLED
+    #
+    #     The package is unpacked, configured and OK.
+    #
+    # apt_pkg.CURSTATE_NOT_INSTALLED
+    #
+    #     The package is not installed.
+    #
+    # apt_pkg.CURSTATE_UNPACKED
+    #
+    #     The package is unpacked, but not configured.
+    states_to_text = {
+        apt_pkg.CURSTATE_CONFIG_FILES: "config-files",
+        apt_pkg.CURSTATE_HALF_CONFIGURED: "half-configured",
+        apt_pkg.CURSTATE_HALF_INSTALLED: "half-installed",
+        apt_pkg.CURSTATE_INSTALLED: "installed",
+        apt_pkg.CURSTATE_NOT_INSTALLED: "not-installed",
+        apt_pkg.CURSTATE_UNPACKED: "unpacked",
+    }
+    for key, value in states_to_text.items():
+        g.labels(value).set(0)
+
+    for package in cache:
+        label_name = states_to_text.get(package._pkg.current_state, None)
+        if label_name is None:
+            logging.warning("unknown package state for package %s: %s", package, package._pkg.current_state)
+            continue
+        g.labels(label_name).inc()
+
+
 def _write_autoremove_pending(registry, cache, exclusions):
     autoremovable_packages = {
         p.candidate
@@ -209,6 +254,7 @@ def _main():
     cache = apt.cache.Cache()
 
     registry = CollectorRegistry()
+    _write_packages_states(registry, cache, args.exclude)
     _write_pending_upgrades(registry, cache, args.exclude)
     _write_held_upgrades(registry, cache, args.exclude)
     _write_obsolete_packages(registry, cache, args.exclude)
