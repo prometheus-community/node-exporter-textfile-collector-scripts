@@ -85,6 +85,7 @@ def is_obsolete(p):
     # interested in.
     if len(origins) == 1 and origins[0][0].origin in ["", "/var/lib/dpkg/status"]:
         return True
+    return False
 
 
 def _write_packages_states(registry, cache, exclusions):
@@ -130,7 +131,7 @@ def _write_packages_states(registry, cache, exclusions):
     # we don't use the inc() function here because it's too slow for
     # the hot loop
     states_counts = {}
-    for key, value in states_to_text.items():
+    for key in states_to_text.keys():
         states_counts[key] = 0
 
     for package in cache:
@@ -143,11 +144,19 @@ def _write_packages_states(registry, cache, exclusions):
         if package.is_installed:
             installed_packages.add(package.candidate)
 
+        # exclusions only apply to upgradable, autoremove, held and obsolete packages
+        #
+        # we still want to count the number of installed packages, and
+        # especially the broken ones
         if package.name in exclusions:
             continue
 
         if package.is_upgradable:
             upgrade_candidates.add(package.candidate)
+            if package._pkg.selected_state == apt_pkg.SELSTATE_HOLD:
+                # Package.phasing_applied is not available in debian bookworm
+                # would be: and not p.phasing_applied
+                held_candidates.add(package.candidate)
 
         if package.is_auto_removable:
             autoremovable_packages.add(package.candidate)
@@ -155,18 +164,12 @@ def _write_packages_states(registry, cache, exclusions):
         if package.is_installed and is_obsolete(package):
             obsoletes.append(package)
 
-        # Package.phasing_applied is not available in debian bookworm
-        # would be: and not p.phasing_applied
-        if package.is_upgradable and package._pkg.selected_state == apt_pkg.SELSTATE_HOLD:
-            held_candidates.add(package.candidate)
-
     # installed packages per origin
     packages_per_origin_count = Gauge('apt_packages_per_origin_count', "Number of packages installed per origin.", ['origin', 'arch'], registry=registry)
     per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
 
-    if per_origin:
-        for o in per_origin:
-            packages_per_origin_count.labels(o.labels['origin'], o.labels['arch']).set(o.count)
+    for o in per_origin:
+        packages_per_origin_count.labels(o.labels['origin'], o.labels['arch']).set(o.count)
 
     # upgradable packages
     for candidate in upgrade_candidates:
