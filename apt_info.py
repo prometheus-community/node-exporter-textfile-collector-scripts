@@ -67,9 +67,6 @@ def _convert_candidates_to_upgrade_infos(candidates):
 
 # This corresponds to the apt filter "?obsolete"
 def is_obsolete(p):
-    # not installed, so not obsolete
-    if not p.is_installed:
-        return
     # no candidate, obsolete
     if p.candidate is None:
         return True
