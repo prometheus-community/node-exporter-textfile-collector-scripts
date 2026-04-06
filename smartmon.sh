@@ -35,6 +35,9 @@ end_to_end_error
 erase_fail_count
 g_sense_error_rate
 hardware_ecc_recovered
+helium_condition_lower
+helium_condition_upper
+helium_level
 host_reads_32mib
 host_reads_mib
 host_writes_32mib
@@ -200,7 +203,7 @@ for device in ${device_list}; do
   usbprolific) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk}" "${type}" ;;
   *)
       (>&2 echo "disk type is not sat, scsi, nvme or megaraid but ${type}")
-    exit
+    continue
     ;;
   esac
 done | format_output
