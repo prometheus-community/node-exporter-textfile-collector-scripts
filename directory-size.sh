@@ -6,8 +6,6 @@
 #
 # */5 * * * * prometheus directory-size.sh /var/lib/prometheus | sponge /var/lib/node_exporter/directory_size.prom
 #
-# awk logic from by https://stackoverflow.com/a/10221507
-#
 # Author: Antoine Beaupré <anarcat@debian.org>
 
 echo "# HELP node_directory_size_bytes Disk space used by some directories"
