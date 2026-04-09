@@ -13,4 +13,7 @@
 echo "# HELP node_directory_size_bytes Disk space used by some directories"
 echo "# TYPE node_directory_size_bytes gauge"
 du --block-size=1 --summarize "$@" \
-  | awk '{ sz = $1; $1 = ""; print "node_directory_size_bytes{directory=\"" substr($0, 2) "\"} "  sz }'
+  | sed -E \
+    -e 's/\\/\\\\/g' \
+    -e 's/"/\\"/g' \
+    -e 's/^([0-9]+)[[:blank:]](.+)$/node_directory_size_bytes{directory="\2"} \1/'
