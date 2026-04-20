@@ -126,7 +126,7 @@ def _write_obsolete_packages(registry, cache, exclusions):
                 package.candidate.architecture,
             )
 
-    g = Gauge('apt_packages_obsolete_count', "Apt packages which are obsolete",
+    g = Gauge('apt_packages_obsolete', "Apt packages which are obsolete",
               registry=registry)
     g.set(len(obsoletes))
 
@@ -153,7 +153,7 @@ def _write_installed_packages_per_origin(registry, cache):
     per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
 
     if per_origin:
-        g = Gauge('apt_packages_per_origin_count', "Number of packages installed per origin.",
+        g = Gauge('apt_packages_per_origin', "Number of packages installed per origin.",
                   ['origin', 'arch'], registry=registry)
         for o in per_origin:
             g.labels(o.labels['origin'], o.labels['arch']).set(o.count)
