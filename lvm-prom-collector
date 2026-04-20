@@ -6,6 +6,7 @@
 #
 # Options:
 #
+# -a for all metrics
 # -g for used and free space of logical volume groups
 # -p for used and free space of physical volumes.
 # -s for the percentage usage of the snapshots
@@ -27,6 +28,7 @@ display_usage() {
   echo "Usage: lvm-prom-collector options"
   echo "Options:"
   echo "Expose various types of information about lvm2"
+  echo "Use -a for all metrics"
   echo "Use -g for used and free space of logical volume groups."
   echo "Use -p for used and free space of physical volumes."
   echo "Use -s for the percentage usage of snapshots."
