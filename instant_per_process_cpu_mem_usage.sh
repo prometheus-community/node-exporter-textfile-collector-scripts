@@ -4,15 +4,33 @@
 # Written (quickly) in 2023 by NetInvent
 # SCRIPT_VERSION 2026052701
 
+# ps works multiple times faster than top, and shows more processes
 # top represents roughly 95% of the time spent by this script
 # awk doesn't need optimisations here
+
+printf "# TYPE top_process_cpu_usage gauge\n# HELP top_process_cpu_usage ps gathered instant CPU usage per process\n"
+printf "# TYPE top_process_memory_usage gauge\n# HELP top_process_memory_usage ps gathered memory usage per process\n"
+
+if [ "$1" == "" ]; then
+
+ps -ax -o pid,%cpu,%mem,comm,args --cols 80 | awk '{
+        args=""; for(i = 5; i<= NF; i++) if ($i!="") {args=args" "$i};
+        gsub("{|}|\\\\|\"", "", args);
+        # Remove self process
+        if ($4=="ps" && args=" -ax -o pid,%cpu,%mem,comm,args --cols 80") { next };
+        # Do not keep not cpu hungry entries
+        if ($2!="0.0") {
+                printf "top_process_cpu_usage{pid=\""$1"\",process=\""$4"\",args=\""args"\"} " $2z"\n"};
+        # Do not keep not memory hungry entries
+        if ($3!="0.0") {
+                printf "top_process_memory_usage{pid=\""$1"\",process=\""$4"\",args=\""args"\"} " $3z"\n"};
+}'
+
+elif [ "$1" == "top" ]; then
 
 # -w [n] forces total column width to [n] so data won't be truncated
 # -c forces full commandline, which we need in order to get command arguments
 # -bn 1 makes top run once in batch mode
-
-printf "# TYPE top_process_cpu_usage gauge\n# HELP top_process_cpu_usage ps gathered instant CPU usage per process\n"
-printf "# TYPE top_process_memory_usage gauge\n# HELP top_process_memory_usage ps gathered memory usage per process\n"
 
 top -w 120 -cbn 1 | awk '{
         # Skip headers
@@ -35,3 +53,5 @@ top -w 120 -cbn 1 | awk '{
         if ($10!="0.0") {
                 printf "top_process_memory_usage{pid=\""$1"\",process=\""$12"\",args=\""args"\"} " $10z"\n"};
 }'
+
+fi
