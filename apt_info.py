@@ -42,11 +42,15 @@ def _convert_candidates_to_upgrade_infos(candidates):
         # to filter the candidates on those kinds of conditions before reaching
         # here so here we don't want to include this information in order to
         # reduce noise in the data.
-        origins = sorted(
-            {f"{o.origin}:{o.codename}/{o.archive}" for o in candidate.origins
-             if o.archive != 'now'}
-        )
-        changes_dict[",".join(origins)][candidate.architecture] += 1
+        origins = set()
+        # this is like candidate.origins, but without the expensive
+        # find_index() that we do not need
+        for f, _ in candidate._cand.file_list:
+            if f.archive == "now":
+                continue
+            origins.add(f"{f.origin}:{f.codename}/{f.archive}")
+
+        changes_dict[",".join(sorted(origins))][candidate.architecture] += 1
 
     changes_list = list()
     for origin in sorted(changes_dict.keys()):
@@ -61,65 +65,149 @@ def _convert_candidates_to_upgrade_infos(candidates):
     return changes_list
 
 
-def _write_pending_upgrades(registry, cache, exclusions):
-    candidates = {
-        p.candidate
-        for p in cache
-        if p.is_upgradable and not p.phasing_applied and p.name not in exclusions
+# This corresponds to the apt filter "?obsolete"
+def is_obsolete(p):
+    # no candidate, obsolete
+    if p.candidate is None:
+        return True
+    # replace the expensive candidate.origins lookup
+    #
+    # we do this because the Origin constructor performs an expensive
+    # find_index() call every time, which we do not need
+    origins = p.candidate._cand.file_list
+    # there is a candidate, but we don't have that version
+    # installed for some reason, obsolete
+    if not origins:
+        return True
+    # origins[0] is the first origin of the file_list and
+    # origins[0][0] is a lookup through the `file_list`, which returns
+    # a (PackageFile, offset) tuple, and the PackageFile is what we're
+    # interested in.
+    if len(origins) == 1 and origins[0][0].origin in ["", "/var/lib/dpkg/status"]:
+        return True
+    return False
+
+
+def _write_packages_states(registry, cache, exclusions):
+    installed_packages = set()
+    upgrade_candidates = set()
+    autoremovable_packages = set()
+    obsoletes = []
+    held_candidates = set()
+
+    # apt_pkg.CURSTATE_CONFIG_FILES
+    #
+    #     Only the configuration files of the package exist on the system.
+    #
+    # apt_pkg.CURSTATE_HALF_CONFIGURED
+    #
+    #     The package is unpacked and configuration has been started, but not yet completed.
+    #
+    # apt_pkg.CURSTATE_HALF_INSTALLED
+    #
+    #     The installation of the package has been started, but not completed.
+    #
+    # apt_pkg.CURSTATE_INSTALLED
+    #
+    #     The package is unpacked, configured and OK.
+    #
+    # apt_pkg.CURSTATE_NOT_INSTALLED
+    #
+    #     The package is not installed.
+    #
+    # apt_pkg.CURSTATE_UNPACKED
+    #
+    #     The package is unpacked, but not configured.
+    states_to_text = {
+        apt_pkg.CURSTATE_CONFIG_FILES: "config-files",
+        apt_pkg.CURSTATE_HALF_CONFIGURED: "half-configured",
+        apt_pkg.CURSTATE_HALF_INSTALLED: "half-installed",
+        apt_pkg.CURSTATE_INSTALLED: "installed",
+        apt_pkg.CURSTATE_NOT_INSTALLED: "not-installed",
+        apt_pkg.CURSTATE_UNPACKED: "unpacked",
     }
-    for candidate in candidates:
+    # counter for the various values
+    #
+    # we don't use the inc() function here because it's too slow for
+    # the hot loop
+    states_counts = {}
+    for key in states_to_text.keys():
+        states_counts[key] = 0
+
+    for package in cache:
+        label_name = states_to_text.get(package._pkg.current_state, None)
+        if label_name is None:
+            logging.warning(
+                "unknown package state for package %s: %s",
+                package,
+                package._pkg.current_state,
+            )
+        else:
+            states_counts[package._pkg.current_state] += 1
+
+        if package.is_installed:
+            installed_packages.add(package.candidate)
+
+        # exclusions only apply to upgradable, autoremove, held and obsolete packages
+        #
+        # we still want to count the number of installed packages, and
+        # especially the broken ones
+        if package.name in exclusions:
+            continue
+
+        if package.is_upgradable:
+            upgrade_candidates.add(package.candidate)
+            if package._pkg.selected_state == apt_pkg.SELSTATE_HOLD:
+                # Package.phasing_applied is not available in debian bookworm
+                # would be: and not p.phasing_applied
+                held_candidates.add(package.candidate)
+
+        if package.is_auto_removable:
+            autoremovable_packages.add(package.candidate)
+
+        if package.is_installed and is_obsolete(package):
+            obsoletes.append(package)
+
+    # installed packages per origin
+    packages_per_origin_count = Gauge(
+        'apt_packages_per_origin',
+        "Number of packages installed per origin.",
+        ['origin', 'arch'],
+        registry=registry,
+    )
+    per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
+
+    for o in per_origin:
+        packages_per_origin_count.labels(o.labels['origin'], o.labels['arch']).set(o.count)
+
+    # upgradable packages
+    for candidate in upgrade_candidates:
         logging.debug(
             "pending upgrade: %s / %s",
             candidate.package,
             candidate.architecture,
         )
-    upgrade_list = _convert_candidates_to_upgrade_infos(candidates)
+    upgrade_list = _convert_candidates_to_upgrade_infos(upgrade_candidates)
 
-    g = Gauge('apt_upgrades_pending', "Apt packages pending updates by origin",
-              ['origin', 'arch'], registry=registry)
     if upgrade_list:
+        g = Gauge('apt_upgrades_pending', "Apt packages pending updates by origin",
+                  ['origin', 'arch'], registry=registry)
         for change in upgrade_list:
             g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
-    else:
-        g.labels("", "").set(0)
 
-
-def _write_held_upgrades(registry, cache, exclusions):
-    held_candidates = {
-        p.candidate for p in cache
-        if (
-            p.is_upgradable
-            and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
-            and not p.phasing_applied
-            and p.name not in exclusions
-        )
-    }
-    for candidate in held_candidates:
+    # autoremove packages
+    for candidate in autoremovable_packages:
         logging.debug(
-            "held upgrade: %s / %s",
+            "autoremovable package: %s / %s",
             candidate.package,
             candidate.architecture,
         )
-    upgrade_list = _convert_candidates_to_upgrade_infos(held_candidates)
 
-    g = Gauge('apt_upgrades_held', "Apt packages pending updates but held back.",
-              ['origin', 'arch'], registry=registry)
-    if upgrade_list:
-        for change in upgrade_list:
-            g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
-    else:
-        g.labels("", "").set(0)
+    g = Gauge('apt_autoremove_pending', "Apt packages pending autoremoval.",
+              registry=registry)
+    g.set(len(autoremovable_packages))
 
-
-def _write_obsolete_packages(registry, cache, exclusions):
-    # This corresponds to the apt filter "?obsolete"
-    obsoletes = [p for p in cache if p.is_installed and (
-                  p.candidate is None or
-                  not p.candidate.origins or
-                  (len(p.candidate.origins) == 1 and
-                   p.candidate.origins[0].origin in ['', "/var/lib/dpkg/status"])
-                  and p.name not in exclusions
-                )]
+    # obsolete packages
     for package in obsoletes:
         if package.candidate is None:
             logging.debug("obsolete package with no candidate: %s", package)
@@ -134,33 +222,25 @@ def _write_obsolete_packages(registry, cache, exclusions):
               registry=registry)
     g.set(len(obsoletes))
 
-
-def _write_autoremove_pending(registry, cache, exclusions):
-    autoremovable_packages = {
-        p.candidate
-        for p in cache
-        if p.is_auto_removable and p.name not in exclusions
-    }
-    for candidate in autoremovable_packages:
+    # held packages
+    for candidate in held_candidates:
         logging.debug(
-            "autoremovable package: %s / %s",
+            "held upgrade: %s / %s",
             candidate.package,
             candidate.architecture,
         )
-    g = Gauge('apt_autoremove_pending', "Apt packages pending autoremoval.",
-              registry=registry)
-    g.set(len(autoremovable_packages))
+    upgrade_list = _convert_candidates_to_upgrade_infos(held_candidates)
 
-
-def _write_installed_packages_per_origin(registry, cache):
-    installed_packages = {p.candidate for p in cache if p.is_installed}
-    per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
-
-    if per_origin:
-        g = Gauge('apt_packages_per_origin', "Number of packages installed per origin.",
+    if upgrade_list:
+        g = Gauge('apt_upgrades_held', "Apt packages pending updates but held back.",
                   ['origin', 'arch'], registry=registry)
-        for o in per_origin:
-            g.labels(o.labels['origin'], o.labels['arch']).set(o.count)
+        for change in upgrade_list:
+            g.labels(change.labels['origin'], change.labels['arch']).set(change.count)
+
+    # other package states
+    packages_count = Gauge('apt_packages', "Apt packages count.", ['state'], registry=registry)
+    for key, label_name in states_to_text.items():
+        packages_count.labels(label_name).set(states_counts[key])
 
 
 def _write_cache_timestamps(registry):
@@ -206,11 +286,7 @@ def _main():
     cache = apt.cache.Cache()
 
     registry = CollectorRegistry()
-    _write_pending_upgrades(registry, cache, args.exclude)
-    _write_held_upgrades(registry, cache, args.exclude)
-    _write_obsolete_packages(registry, cache, args.exclude)
-    _write_autoremove_pending(registry, cache, args.exclude)
-    _write_installed_packages_per_origin(registry, cache)
+    _write_packages_states(registry, cache, args.exclude)
     _write_cache_timestamps(registry)
     _write_reboot_required(registry)
     print(generate_latest(registry).decode(), end='')
