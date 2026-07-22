@@ -137,9 +137,13 @@ def _write_packages_states(registry, cache, exclusions):
     for package in cache:
         label_name = states_to_text.get(package._pkg.current_state, None)
         if label_name is None:
-            logging.warning("unknown package state for package %s: %s", package, package._pkg.current_state)
+            logging.warning(
+                "unknown package state for package %s: %s",
+                package,
+                package._pkg.current_state,
+            )
         else:
-            states_counts[package._pkg.current_state]+=1
+            states_counts[package._pkg.current_state] += 1
 
         if package.is_installed:
             installed_packages.add(package.candidate)
@@ -165,7 +169,12 @@ def _write_packages_states(registry, cache, exclusions):
             obsoletes.append(package)
 
     # installed packages per origin
-    packages_per_origin_count = Gauge('apt_packages_per_origin', "Number of packages installed per origin.", ['origin', 'arch'], registry=registry)
+    packages_per_origin_count = Gauge(
+        'apt_packages_per_origin',
+        "Number of packages installed per origin.",
+        ['origin', 'arch'],
+        registry=registry,
+    )
     per_origin = _convert_candidates_to_upgrade_infos(installed_packages)
 
     for o in per_origin:
