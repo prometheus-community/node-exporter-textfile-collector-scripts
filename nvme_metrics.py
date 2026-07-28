@@ -61,7 +61,7 @@ metrics = {
     ),
     "host_write_commands": Counter(
         "host_write_commands_total",
-        "Device write commands from host",
+        "Device write commands from host (generally in 512b blocks)",
         ["device"], namespace=namespace, registry=registry,
     ),
     "media_errors": Counter(
@@ -127,6 +127,16 @@ metrics = {
         "Device used size in bytes",
         ["device"], namespace=namespace, registry=registry,
     ),
+    "physical_media_units_read": Gauge(
+        "physical_media_units_read",
+        "Physical media units read in bytes",
+        ["device"], namespace=namespace, registry=registry,
+    ),
+    "physical_media_units_written": Gauge(
+        "physical_media_units_written",
+        "Physical media units written in bytes",
+        ["device"], namespace=namespace, registry=registry,
+    ),
     # fmt: on
 }
 
@@ -156,7 +166,7 @@ def exec_nvme(*args):
     return subprocess.check_output(cmd, stderr=subprocess.PIPE, env=dict(os.environ, LC_ALL="C"))
 
 
-def exec_nvme_json(*args, has_verbose):
+def exec_nvme_json(*args, has_verbose=False, allow_errors=False):
     """
     Execute nvme CLI tool with specified arguments and return parsed JSON output.
     """
@@ -168,17 +178,23 @@ def exec_nvme_json(*args, has_verbose):
     # no verbose parameter for smart-log command only
 
     try:
-        if "smart-log" in args and not has_verbose:
-            output = exec_nvme(*args, "--output-format", "json")
-        else:
+        if has_verbose:
             output = exec_nvme(*args, "--output-format", "json", "--verbose")
+        else:
+            output = exec_nvme(*args, "--output-format", "json")
+        if isinstance(output, bytes):
+            output = output.decode("utf-8")
+        output = re.sub(r"\\n\S+", "", output)
     except subprocess.CalledProcessError as exc:
         try:
             output = json.loads(exc.output)
             if "Failed to scan topology" in output["error"]:
                 return {"Devices": []}
         except json.JSONDecodeError:
-            raise ValueError("Cannot parse nvme binary output")
+            if not allow_errors:
+                raise ValueError("Cannot parse nvme binary output")
+            else:
+                return {}
     return json.loads(output)
 
 
@@ -219,6 +235,13 @@ def main():
                     # per namespace anyway. Most consumer grade SSDs will only have one namespace.
                     smart_log = exec_nvme_json(
                         "smart-log", os.path.join("/dev", device_name), has_verbose=has_verbose
+                    )
+                    ocp_log = exec_nvme_json(
+                        "ocp",
+                        "smart-add-log",
+                        os.path.join("/dev", device_name),
+                        has_verbose=False,
+                        allow_errors=True,
                     )
 
                     # Various counters in the NVMe specification are 128-bit, which would have to
@@ -265,6 +288,20 @@ def main():
 
                     # NVMe reports temperature in kelvins; convert it to degrees Celsius.
                     metrics["temperature"].labels(device_name).set(smart_log["temperature"] - 273)
+
+                    # Optional OCP data
+                    try:
+                        metrics["physical_media_units_read"].labels(device_name).set(
+                            ocp_log["Physical media units read"]["lo"]
+                        )
+                    except (AttributeError, IndexError, TypeError, KeyError):
+                        metrics["physical_media_units_read"].labels(device_name).set(-1)
+                    try:
+                        metrics["physical_media_units_written"].labels(device_name).set(
+                            ocp_log["Physical media units written"]["lo"]
+                        )
+                    except (AttributeError, IndexError, TypeError, KeyError):
+                        metrics["physical_media_units_written"].labels(device_name).set(-1)
 
 
 if __name__ == "__main__":
