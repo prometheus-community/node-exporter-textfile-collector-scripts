@@ -231,9 +231,9 @@ def handle_common_controller(response):
 def handle_sas_controller(response):
     controller_index = response["Basics"]["Controller"]
 
-    metrics["ctrl_healthy"].labels(controller_index).set(
-        response["Status"]["Controller Status"] == "OK"
-    )
+    status = response["Status"].get("Controller Status")
+    if status is not None:
+        metrics["ctrl_healthy"].labels(controller_index).set(status == "OK")
     metrics["ctrl_ports"].labels(controller_index).set(response["HwCfg"]["Backend Port Count"])
 
     try:
