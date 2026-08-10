@@ -1,0 +1,25 @@
+  pool: test
+ state: DEGRADED
+status: One or more devices could not be used because the label is missing or
+        invalid.  Sufficient replicas exist for the pool to continue
+        functioning in a degraded state.
+action: Replace the device using 'zpool replace'.
+   see: http://zfsonlinux.org/msg/ZFS-8000-4J
+  scan: resilvered 25.8M in 0h0m with 0 errors on Fri Aug 22 12:02:46 2014
+config:
+
+        NAME                                         STATE     READ WRITE CKSUM
+        test                                         DEGRADED     0     0     0
+          mirror-0                                   DEGRADED     0     0     0
+            spare-0                                  DEGRADED     1     0     0
+              ata-VBOX_HARDDISK_VBb80f1f56-538e9acf  ONLINE       0     0     1
+              16876260487220383698                   FAULTED      0     0     0  was /dev/disk/by-path/pci-0000:00:0d.0-scsi-12:0:0:0-part1
+            ata-VBOX_HARDDISK_VB875e28a5-4b293298    ONLINE       0     0     0
+          mirror-1                                   ONLINE       0     0     0
+            ata-VBOX_HARDDISK_VB4145ff65-9b1320a3    ONLINE       0     0     0
+            ata-VBOX_HARDDISK_VBee9d66a1-edf52bff    ONLINE       0     0     0
+        spares
+          pci-0000:00:0d.0-scsi-10:0:0:0             AVAIL
+          pci-0000:00:0d.0-scsi-11:0:0:0             AVAIL
+          pci-0000:00:0d.0-scsi-12:0:0:0             AVAIL
+          pci-0000:00:0d.0-scsi-13:0:0:0             AVAIL

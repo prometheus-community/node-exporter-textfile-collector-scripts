@@ -1,0 +1,21 @@
+  pool: zones
+ state: DEGRADED
+status: One or more devices could not be opened.  Sufficient replicas exist for
+        the pool to continue functioning in a degraded state.
+action: Attach the missing device and online it using 'zpool online'.
+   see: http://illumos.org/msg/ZFS-8000-2Q
+  scan: scrub repaired 0 in 29h37m with 0 errors on Thu Jul 14 18:42:06 2016
+config:
+
+        NAME                       STATE     READ WRITE CKSUM
+        zones                      DEGRADED     0     0     0
+          mirror-0                 DEGRADED     0     0     0
+            9669136929555758172    UNAVAIL      0     0     0  was /dev/dsk/c0t5000C5006349E003d0s0
+            c0t5000C500631F81E7d0  ONLINE       0     0     0
+          mirror-1                 ONLINE       0     0     0
+            c0t5000C500634A297Bd0  ONLINE       0     0     0
+            c0t5000C500634B4EA3d0  ONLINE       0     0     0
+        logs
+          c0t55CD2E404B73663Dd0    ONLINE       0     0     0
+
+errors: No known data errors
