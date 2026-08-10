@@ -372,7 +372,7 @@ def collect_ata_metrics(device):
         # whitelisted here.
         entry['name'] = entry['name'].lower()
         if entry["name"] not in smart_attributes_whitelist and \
-            entry["name"] not in list(smart_attributes_map.keys()):
+                entry["name"] not in list(smart_attributes_map.keys()):
             continue
 
         # Ensure that only the numeric parts are fetched from the raw_value.
@@ -390,8 +390,8 @@ def collect_ata_metrics(device):
         if entry['threshold'] == '---':
             entry['threshold'] = '0'
 
-        if (entry["name"] in smart_attributes_whitelist or entry["name"] in \
-            list(smart_attributes_map.keys())) and entry["name"] not in seen:
+        if (entry["name"] in smart_attributes_whitelist or entry["name"] in
+                list(smart_attributes_map.keys())) and entry["name"] not in seen:
             if entry["name"] in smart_attributes_map:
                 entry["name"] = smart_attributes_map[entry["name"]]
             for col in 'value', 'worst', 'threshold', 'raw_value':
