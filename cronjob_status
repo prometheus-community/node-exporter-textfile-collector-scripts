@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Expose cronjob exit status
+#
+# Usage: <command> ; cronjob_status "<description>" $?
+#
+# Example crontab entry:
+# * * * * * echo "Hello world!"; cronjob_status "greeting" $? | sponge /var/lib/prometheus/node-exporter/cronjob_greeting.prom
+#
+# Inspired by: https://janikvonrotz.ch/2020/09/07/monitor-cron-jobs-with-prometheus-grafana-and-node-exporter/
+#
+# Author: Alex Kraker (github.com/kraker)
+
+# Unofficial strict mode
+# See: http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+readonly DESCRIPTION="$1"
+readonly STATUS="$2"
+
+echo "# HELP node_cronjob_status Last exit code of cronjob."
+echo "# TYPE node_cronjob_status gauge"
+echo "node_cronjob_status{user=\"${USER}\", description=\"${DESCRIPTION}\"} ${STATUS}"
