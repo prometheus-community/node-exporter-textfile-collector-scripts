@@ -135,7 +135,7 @@ if [ "$caches" = true ]; then
 fi
 
 if [ "$thin_pools" = true ]; then
-  lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,vg_name,data_percent,metadata_percent 2>/dev/null)
+  lvs_output=$(lvs --noheadings --select 'lv_attr=~[^t.*]' --units b --nosuffix --unquoted --nameprefixes --options lv_uuid,lv_name,vg_name,data_percent,metadata_percent 2>/dev/null)
 
   echo "# HELP node_lvm_thin_pools_allocated percentage of allocated thin pool data"
   echo "# TYPE node_lvm_thin_pools_allocated gauge"
@@ -144,7 +144,7 @@ if [ "$thin_pools" = true ]; then
     [ -z "$line" ] && continue
     # shellcheck disable=SC2086
     declare $line
-    echo "node_lvm_thin_pools_allocated{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
+    echo "node_lvm_thin_pools_allocated{uuid=\"$LVM2_LV_UUID\", name=\"$LVM2_LV_NAME\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_DATA_PERCENT"
   done
 
   echo "# HELP node_lvm_thin_pools_metadata percentage of allocated thin pool metadata"
@@ -154,7 +154,7 @@ if [ "$thin_pools" = true ]; then
     [ -z "$line" ] && continue
     # shellcheck disable=SC2086
     declare $line
-    echo "node_lvm_thin_pools_metadata{uuid=\"$LVM2_LV_UUID\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_METADATA_PERCENT"
+    echo "node_lvm_thin_pools_metadata{uuid=\"$LVM2_LV_UUID\", name=\"$LVM2_LV_NAME\", vgroup=\"$LVM2_VG_NAME\"} $LVM2_METADATA_PERCENT"
   done
 fi
 
