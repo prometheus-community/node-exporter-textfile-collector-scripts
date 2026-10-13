@@ -1,0 +1,3 @@
+output: |
+   # HELP inotify_user_instances Total number of inotify instances held open by a user.
+   # TYPE inotify_user_instances gauge

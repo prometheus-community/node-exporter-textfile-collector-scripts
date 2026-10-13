@@ -1,0 +1,29 @@
+[project]
+name = "node-exporter-textfile-collector-scripts"
+version = "0.0.0"
+description = "Metric generators for use with the Prometheus Node Exporter textfile collector."
+readme = "README.md"
+license = {file = "LICENSE"}
+
+requires-python = ">=3.5,<4.0"
+dependencies = [
+    "prometheus_client",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-golden",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = "tests"
+norecursedirs = [
+    ".vscode",
+    ".github",
+    ".circleci",
+    ".pytest_cache",
+    "__pycache__",
+]
+enable_assertion_pass_hook = true
