@@ -45,6 +45,32 @@ done <<<$'1\tsize_bytes\tTotal size of the storage pool
 4\tdedupratio\tThe deduplication ratio
 5\tfragmentation\tThe amount of fragmentation in the pool'
 
+### zpool vdev error counters and data errors ###
+# NOTE: requires zpool status -p
+zpool status -p 2>/dev/null | awk -v P="${ZPOOL}" -v L="${ZPOOL_NAME}" '
+  BEGIN {
+    print "# HELP " P "_vdev_errors Read/write/checksum errors per vdev since last clear or import"
+    print "# TYPE " P "_vdev_errors gauge"
+    split("read write checksum", type, " ")
+  }
+  $1 == "pool:" { pool = $2; next }
+  $1 == "NAME" && $2 == "STATE" { in_vdev_table = 1; next }
+  $1 == "errors:" {
+    in_vdev_table = 0
+    if ($2 ~ /^[0-9]+$/) data_errors[pool] = $2
+    else if ($2 == "No") data_errors[pool] = 0
+    next
+  }
+  in_vdev_table && $3 ~ /^[0-9]+$/ && $4 ~ /^[0-9]+$/ && $5 ~ /^[0-9]+$/ {
+    for (i = 1; i <= 3; i++)
+      printf "%s_vdev_errors{%s=\"%s\",vdev=\"%s\",type=\"%s\"} %s\n", P, L, pool, $1, type[i], $(i + 2)
+  }
+  END {
+    print "# HELP " P "_data_errors Number of persistent data errors (damaged files) in the pool"
+    print "# TYPE " P "_data_errors gauge"
+    for (p in data_errors) printf "%s_data_errors{%s=\"%s\"} %s\n", P, L, p, data_errors[p]
+  }'
+
 ### dataset metadata ###
 
 echo "# HELP ${DATASET} Constant metric with metadata about the zfs dataset"
