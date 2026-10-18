@@ -33,6 +33,17 @@ from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
 _UpgradeInfo = collections.namedtuple("_UpgradeInfo", ["labels", "count"])
 
+# python-apt exposes the phased updates API since 2.7.11. Older releases --
+# Debian 12 (2.6.0) and Ubuntu 22.04 (2.4.0) -- raise AttributeError for every
+# package, which aborts the script before it writes any metric. Probe for the
+# attribute instead of comparing versions: Ubuntu 24.04 backported the API into
+# its 2.7.7.
+_HAS_PHASING = hasattr(apt.package.Package, "phasing_applied")
+
+
+def _phasing_applied(package):
+    return package.phasing_applied if _HAS_PHASING else False
+
 
 def _convert_candidates_to_upgrade_infos(candidates):
     changes_dict = collections.defaultdict(lambda: collections.defaultdict(int))
@@ -65,7 +76,7 @@ def _write_pending_upgrades(registry, cache, exclusions):
     candidates = {
         p.candidate
         for p in cache
-        if p.is_upgradable and not p.phasing_applied and p.name not in exclusions
+        if p.is_upgradable and not _phasing_applied(p) and p.name not in exclusions
     }
     for candidate in candidates:
         logging.debug(
@@ -90,7 +101,7 @@ def _write_held_upgrades(registry, cache, exclusions):
         if (
             p.is_upgradable
             and p._pkg.selected_state == apt_pkg.SELSTATE_HOLD
-            and not p.phasing_applied
+            and not _phasing_applied(p)
             and p.name not in exclusions
         )
     }
