@@ -31,10 +31,10 @@ def main():
                             if path not in processes_linking_deleted_libraries:
                                 processes_linking_deleted_libraries[path] = {}
 
-                                if library in processes_linking_deleted_libraries[path]:
-                                    processes_linking_deleted_libraries[path][library] += 1
-                                else:
-                                    processes_linking_deleted_libraries[path][library] = 1
+                            if library in processes_linking_deleted_libraries[path]:
+                                processes_linking_deleted_libraries[path][library] += 1
+                            else:
+                                processes_linking_deleted_libraries[path][library] = 1
         except EnvironmentError as e:
             # Ignore non-existent files, since the files may have changed since
             # we globbed.
