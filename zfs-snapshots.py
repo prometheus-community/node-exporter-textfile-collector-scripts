@@ -48,7 +48,7 @@ def zfs_list_snapshots():
             break
         yield stdout_line.decode("utf-8")
     return_code = popen.wait()
-    if return_code:
+    if return_code > 0:
         raise subprocess.CalledProcessError(return_code, cmd)
 
 
