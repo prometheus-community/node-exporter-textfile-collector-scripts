@@ -412,39 +412,49 @@ def collect_ata_error_count(device):
     ).set(error_count)
 
 
+def collect_device_smart_metrics(device, wakeup_disks):
+    is_active = device_is_active(device)
+    metrics["device_active"].labels(
+        device.base_labels["device"], device.base_labels["disk"],
+    ).set(is_active)
+
+    # Skip further metrics collection to prevent the disk from spinning up.
+    if not is_active and not wakeup_disks:
+        return
+
+    collect_device_info(device)
+
+    smart_available, smart_enabled = device_smart_capabilities(device)
+
+    metrics["device_smart_available"].labels(
+        device.base_labels["device"], device.base_labels["disk"]
+    ).set(smart_available)
+
+    metrics["device_smart_enabled"].labels(
+        device.base_labels["device"], device.base_labels["disk"]
+    ).set(smart_enabled)
+
+    # Skip further metrics collection here if SMART is disabled on the device. Further smartctl
+    # invocations would fail anyway.
+    if not smart_available:
+        return
+
+    collect_device_health_self_assessment(device)
+
+    if device.type.startswith('sat'):
+        collect_ata_metrics(device)
+        collect_ata_error_count(device)
+
+
 def collect_disks_smart_metrics(wakeup_disks, by_id):
     for device in find_devices(by_id):
-        is_active = device_is_active(device)
-        metrics["device_active"].labels(
-            device.base_labels["device"], device.base_labels["disk"],
-        ).set(is_active)
-
-        # Skip further metrics collection to prevent the disk from spinning up.
-        if not is_active and not wakeup_disks:
-            continue
-
-        collect_device_info(device)
-
-        smart_available, smart_enabled = device_smart_capabilities(device)
-
-        metrics["device_smart_available"].labels(
-            device.base_labels["device"], device.base_labels["disk"]
-        ).set(smart_available)
-
-        metrics["device_smart_enabled"].labels(
-            device.base_labels["device"], device.base_labels["disk"]
-        ).set(smart_enabled)
-
-        # Skip further metrics collection here if SMART is disabled on the device. Further smartctl
-        # invocations would fail anyway.
-        if not smart_available:
-            continue
-
-        collect_device_health_self_assessment(device)
-
-        if device.type.startswith('sat'):
-            collect_ata_metrics(device)
-            collect_ata_error_count(device)
+        # A single device that fails to answer smartctl (e.g. while it is being
+        # formatted, or because it is dying) must not prevent metrics from
+        # being written for all the other devices.
+        try:
+            collect_device_smart_metrics(device, wakeup_disks)
+        except subprocess.CalledProcessError as e:
+            print(f"smartmon: skipping {device.path}: {e}", file=sys.stderr)
 
 
 def main():
